@@ -111,6 +111,7 @@
 
 ;;(use-package forge) ;some sqlite3 issue with this 
 
+(use-package swiper)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -125,3 +126,4 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
