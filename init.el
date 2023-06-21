@@ -1,7 +1,7 @@
 ;; Basic UI Configuration ------------------------------------------------------
 
 ;; You will most likely need to adjust this font size for your system!
-(defvar nij/default-font-size 160)
+(defvar nij/default-font-size 100)
 
 (setq inhibit-startup-message t)
 
@@ -31,10 +31,10 @@
 ;;(set-face-attribute 'default nil :font "FiraCode Nerd Font") another slightly lighter-weight version
 
 ;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height 260)
+(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height 130)
 
 ;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil :font "Cantarell" :height 295 :weight 'regular)
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height 140 :weight 'regular)
 
 ;; Package Manager Configuration -----------------------------------------------
 
@@ -196,7 +196,7 @@
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
 (defun nij/org-mode-visual-fill ()
-  (setq visual-fill-column-width 100
+  (setq visual-fill-column-width 180
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
 
