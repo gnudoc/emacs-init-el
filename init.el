@@ -187,6 +187,8 @@
   :hook (org-mode . nij/org-mode-setup)
   :config
   (setq org-ellipsis " ▾")
+  (setq org-agenda-files
+	'("~/Documents/OrgFiles/Tasks.org"))
   (nij/org-font-setup))
 
 (use-package org-bullets
@@ -208,6 +210,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(org-agenda-files nil)
  '(package-selected-packages
    '(visual-fill-column org-bullets forge magit counsel-projectile projectile helpful counsel ivy-rich which-key rainbow-delimiters doom-themes doom-modeline nerd-icons all-the-icons ivy use-package)))
 (custom-set-faces
