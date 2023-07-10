@@ -1,0 +1,417 @@
+#+title Emacs From Scratch configuration
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
+
+* Preamble
+
+#+begin_src emacs-lisp
+;; Note that init.el is generated from ./Emacs.org - that is the file that should be editted.
+#+end_src
+
+* Package System Setup
+I'm using the [[https://github.com/jwiegley/use-package][use-package]] system here, rather than the built-in package.el system.
+#+begin_src emacs-lisp
+
+;; Initialize package sources
+(require 'package)
+
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("org" . "https://orgmode.org/elpa/")
+                         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(package-initialize)
+(unless package-archive-contents
+ (package-refresh-contents))
+
+;; Initialize use-package on non-Linux platforms
+(unless (package-installed-p 'use-package)
+   (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+#+end_src
+
+* Basic UI Config
+Make default font sizes in case we want them. Hide away some UI elements that we don't want, like the scroll-bar, tool-bar, tooltips and menu-bar.
+#+begin_src emacs-lisp
+
+  ;; You will most likely need to adjust these font sizes for your system
+  (defvar nij/default-font-size 130)
+  (defvar nij/default-variable-font-size 140)
+
+  (setq inhibit-startup-message t)
+
+  (scroll-bar-mode -1)        ; Disable visible scrollbar
+  (tool-bar-mode -1)          ; Disable the toolbar
+  (tooltip-mode -1)           ; Disable tooltips
+  (set-fringe-mode 10)        ; Give some breathing room
+  (menu-bar-mode -1)            ; Disable the menu bar - comment this if you're not confident with keybindings yet
+
+  ;; Set up the visible bell
+  (setq visible-bell t)
+
+  (column-number-mode)
+  (global-display-line-numbers-mode t)
+
+  ;; Disable line numbers for some modes
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  shell-mode-hook
+                  eshell-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+#+end_src
+
+** Font config
+[[https://github.com/tonsky/FiraCode][Firacode]] and [[https://fonts.google.com/specimen/Cantarell][Cantarell]] are useful fonts to have. You need them on the system before running emacs with this config.
+#+begin_src emacs-lisp
+(set-face-attribute 'default nil :font "Fira Code Retina" :height nij/default-font-size)
+;;(set-face-attribute 'default nil :font "FiraCode Nerd Font") another slightly lighter-weight version
+
+;; Set the fixed pitch face
+(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height 130)
+
+;; Set the variable pitch face
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height 140 :weight 'regular)
+
+#+end_src
+
+* Keybinding Config
+There is nothing in this section just now, but things like [[https://evil.readthedocs.io/en/latest/index.html][evil-mode]] and [[https://github.com/noctuid/general.el][general]] could go here.
+* More UI Config
+
+** Colour Theme
+Look at lots of [[https://github.com/hlissner/emacs-doom-themes][doom-themes]] here. =M-x counsel-load-theme= should also help.
+#+begin_src emacs-lisp
+
+(use-package doom-themes
+  :init (load-theme 'doom-dracula t))
+
+#+end_src
+** Modeline
+Another element of doom emacs that's nice is the [[https://github.com/seagle0128/doom-modeline][modeline]]. It also has a bunch of its own config options. On first run you'll need to do =M-x all-the-icons-install-fonts= 
+#+begin_src emacs-lisp
+
+(use-package all-the-icons)
+(use-package nerd-icons)
+
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :custom ((doom-modeline-height 15)))
+
+#+end_src
+
+** Which Key
+[[https://github.com/justbur/emacs-which-key][which-key]] offers all possible completions for any key prefix
+#+begin_src emacs-lisp
+
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.5))
+
+#+end_src
+** Ivy and Counsel
+[[https://oremacs.com/swiper/][Ivy]] is a completion framework. Counsel is a part of it - customised commands to replace various inbuilt commands like find-file, to use the completion framework. [[https://github.com/Yevgnen/ivy-rich][ivy-rich]] adds more useful stuff to the counsel commands. I haven't yet decided if I might ever want some vim-like keybindings for ivy.
+#+begin_src emacs-lisp
+
+  (use-package ivy
+    :diminish
+  ;;  :bind (("C-s" . swiper)
+  ;;         :map ivy-minibuffer-map
+  ;;         ("TAB" . ivy-alt-done)
+  ;;         ("C-l" . ivy-alt-done)
+  ;;         ("C-j" . ivy-next-line)
+  ;;         ("C-k" . ivy-previous-line)
+  ;;         :map ivy-switch-buffer-map
+  ;;         ("C-k" . ivy-previous-line)
+  ;;         ("C-l" . ivy-done)
+  ;;         ("C-d" . ivy-switch-buffer-kill)
+  ;;         :map ivy-reverse-i-search-map
+  ;;         ("C-k" . ivy-previous-line)
+  ;;         ("C-d" . ivy-reverse-i-search-kill))
+    :config
+    (ivy-mode 1))
+
+  (use-package ivy-rich
+    :init
+    (ivy-rich-mode 1))
+
+  (use-package counsel
+    :bind (("M-x" . counsel-M-x)
+           ("C-x b" . counsel-ibuffer)
+           ("C-x C-f" . counsel-find-file)
+           :map minibuffer-local-map
+           ("C-r" . 'counsel-minibuffer-history))
+    :config (counsel-mode 1))
+
+#+end_src
+** Helpful
+[[https://github.com/Wilfred/helpful][Helpful]] adds more helpful info to the =describe-*= buffers. eg the source code of functions.
+#+begin_src emacs-lisp
+
+(use-package helpful
+  :custom
+  (counsel-describe-function-function #'helpful-callable)
+  (counsel-describe-variable-function #'helpful-variable)
+  :bind
+  ([remap describe-function] . counsel-describe-function)
+  ([remap describe-command] . helpful-command)
+  ([remap describe-variable] . counsel-describe-variable)
+  ([remap describe-key] . helpful-key))
+
+#+end_src
+* Org Mode
+The famous and magic [[https://orgmode.org][Org Mode]]. All sorts of functions. Rich document editing, project planning, task/time tracking, literate coding (long before Jupyter notebooks), blogging engine, and more.
+** Fonts
+#+begin_src emacs-lisp
+
+(defun nij/org-font-setup ()
+  ;; Replace list hyphen with dot
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+  ;; Set faces for heading levels
+  (dolist (face '((org-level-1 . 1.2)
+                  (org-level-2 . 1.1)
+                  (org-level-3 . 1.05)
+                  (org-level-4 . 1.0)
+                  (org-level-5 . 1.0)
+                  (org-level-6 . 1.0)
+                  (org-level-7 . 1.0)
+                  (org-level-8 . 1.0)))
+    (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+
+  ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+  (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+  (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-table nil   :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+  (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+  (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
+
+#+end_src
+
+** Basic  Config
+There's loads more you could do, eg for org-agenda. see systemcrafters emacs-from-scratch for examples.
+#+begin_src emacs-lisp
+
+    (defun nij/org-mode-setup ()
+      (org-indent-mode)
+      (variable-pitch-mode 1)
+      (visual-line-mode 1))
+
+
+    (use-package org
+      :hook (org-mode . nij/org-mode-setup)
+      :config
+      (setq org-ellipsis " ▾")
+    ;;  (setq org-agenda-start-with-log-mode t)
+    ;;  (setq org-log-done 'time)
+    ;;  (setq org-log-into-drawer t)
+    ;;  (setq org-agenda-files
+    ;;	'("~/Documents/OrgFiles/Tasks.org"))
+    ;;  (require 'org-habit)
+    ;;  (add-to-list 'org-modules 'org-habit)
+    ;;  (setq org-habit-graph-column 60) ;; this might need amended
+    ;;;; there's tons more that can be put in here - look at daviwil's emacs-from-scratch emacs.org org mode section for example
+      (nij/org-font-setup))
+  
+#+end_src
+** Bullets
+[[https://github.com/sabof/org-bullets][org-bullets]] lets us have nice looking bullet list markers instead of multiple **.
+#+begin_src emacs-lisp
+
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode)
+    :custom
+    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+#+end_src
+** Visual centring of org buffer
+We use [[https://github.com/joostkremers/visual-fill-column][visual-fill-column]] here. The column width will need to be changed for different screens
+#+begin_src emacs-lisp
+  
+  (defun nij/org-mode-visual-fill ()
+    (setq visual-fill-column-width 250
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :hook (org-mode . nij/org-mode-visual-fill))
+
+#+end_src
+** Configure Babel Languages
+Add a list item to org-babel-load-languages for each language we want to do code blocks for. The conf-unix line lets us do key-value pairs (eg meaning=42) which a lot of *nix programs use for config.
+More info [[https://orgmode.org/worg/org-contrib/babel/languages.html][here]].
+#+begin_src emacs-lisp
+
+  (org-babel-do-load-languages
+    'org-babel-load-languages
+    '((emacs-lisp . t)
+      (python . t)))
+
+  (push '("conf-unix" . conf-unix) org-src-lang-modes)
+
+#+end_src
+** Structure Templates
+This allows you to type <el then TAB or <py then TAB and so on to get code blocks inserted into org docs. You can even use it for the custom bits like :tangle or :mkdirp if needed.
+More [[https://orgmode.org/manual/Structure-Templates.html][here]].
+#+begin_src emacs-lisp
+
+(require 'org-tempo)
+(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+
+#+end_src
+** Auto-tangle Config Files
+Any time an org-mode buffer gets saved, our function gets run.  If the org-mode file being saved is this one, then the code snippets are all sent to their respective files.
+#+begin_src emacs-lisp
+
+  ;; Automatically tange our Emacs.org config file when we save it
+  (defun nij/org-babel-tangle-config ()
+    (when (string-equal (buffer-file-name)
+                        (expand-file-name "~/.emacs.d/Emacs.org"))
+      ;; Dynamic scoping example
+      (let ((org-confirm-babel-evaluate nil))
+        (org-babel-tangle))))
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'nij/org-babel-tangle-config)))
+  
+#+end_src
+* Dev stuff
+** Languages
+*** IDE Features with lsp-mode
+**** lsp-mode
+[[https://emacs-lsp.github.io/lsp-mode/][lsp-mode]] allows communication with an external language server for IDE-style features.
+=[[https://emacs-lsp.github.io/lsp-mode/page/languages/][Check]] the docs for the languages you need= before proceeding, to install the right external packages / dependencies.
+#+begin_src emacs-lisp
+
+  (defun nij/lsp-mode-setup ()
+    (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+    (lsp-headerline-breadcrumb-mode))
+
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :hook ((lsp-mode . nij/lsp-mode-setup)
+           (cc-mode . lsp-deferred)) ;; for c and c++
+    :init (setq lsp-keymap-prefix "C-c l")
+    :config (lsp-enable-which-key-integration t))
+
+#+end_src
+**** lsp-ui
+[[https://emacs-lsp.github.io/lsp-ui/][UI enhancements]] to make it even more IDE-ish.
+#+begin_src emacs-lisp
+
+  (use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom (lsp-ui-doc-position 'bottom))
+
+#+end_src
+**** lsp-treemacs
+[[https://github.com/emacs-lsp/lsp-treemacs][lsp-treemacs]] provides various tree views. Try =M-x lsp-treemacs-symbols= or =M-x lsp-treemacs-references= or =M-x lsp-treemacs-error-list=
+#+begin_src emacs-lisp
+
+(use-package lsp-treemacs
+  :after lsp)
+
+#+end_src
+**** lsp-ivy
+[[https://github.com/emacs-lsp/lsp-ivy][lsp-ivy]] provides searching by symbol within the code. lsp-ivy-workspace-symbol and lsp-ivy-global-workspace-symbol
+#+begin_src emacs-lisp
+
+(use-package lsp-ivy)
+
+#+end_src
+
+** Company mode
+For nicer than completion-at-point
+#+begin_src emacs-lisp
+
+  (use-package company
+    :after lsp-mode
+    :hook (lsp-mode . company-mode)
+    :bind (:map company-active-map
+           ("<tab>" . company-complete-selection))
+          (:map lsp-mode-map
+           ("<tab>" . company-indent-or-complete-common))
+    :custom
+    (company-minimum-prefix-length 1)
+    (company-idle-delay 0.0))
+
+  (use-package company-box
+    :hook (company-mode . company-box-mode))
+
+#+end_src
+** Projectile
+#+begin_src emacs-lisp
+
+(use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :custom ((projectile-completion-system 'ivy))
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :init
+  ;; NOTE: Set this to the folder containing Git and other code repos!
+  (when (file-directory-p "~/Projects/Code")
+    (setq projectile-project-search-path '("~/Projects/Code")))
+  (setq projectile-switch-project-action #'projectile-dired))
+
+(use-package counsel-projectile
+  :config (counsel-projectile-mode))
+
+#+end_src
+** Sqlite3
+Seems to be required for magit. Lifted directly from the github readme with addition of use-package line to install it from melpa. i'm sure the rest of the config should be done in a use-package-y way. You have to have the dev headers package for libsqlite3 from your distro - eg =sudo apt install libsqlite3-dev= on ubuntu 23.04
+#+begin_src emacs-lisp
+
+  ;; the first time you run emacs with this config it'll complain that some function definition is void or something like that.
+  ;; you have to (unload-feature sqlite3) then (require 'sqlite3) again.
+  (use-package sqlite3)
+  
+  (require 'sqlite3)
+
+  (setq dbh (sqlite3-open "person.sqlite3" sqlite-open-readwrite sqlite-open-create))
+  (sqlite3-exec dbh "create table temp (name text, age integer)")
+  (setq stmt (sqlite3-prepare dbh "insert into temp values (?,?)"))
+  (cl-loop for i from 1 to 10 do
+           (sqlite3-bind-multi stmt (format "name%d" i) i)
+            ;; execute the SQL
+           (sqlite3-step stmt)
+           ;; call reset if you want to bind the SQL to a new set of variables
+           (sqlite3-reset stmt))
+  (sqlite3-finalize stmt)
+
+  (setq stmt (sqlite3-prepare dbh "select * from temp"))
+  (while (= sqlite-row (sqlite3-step stmt))
+    (cl-destructuring-bind (name age) (sqlite3-fetch stmt)
+      (message "name: %s, age: %d" name age)))
+  (sqlite3-finalize stmt)
+  (sqlite3-close dbh)
+
+#+end_src
+** Magit
+#+begin_src emacs-lisp
+
+(use-package magit
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+;; NOTE: Make sure to configure a GitHub token before using this package!
+;; - https://magit.vc/manual/forge/Token-Creation.html#Token-Creation
+;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
+(use-package forge)
+
+#+end_src
+** Rainbow Delimiters
+#+begin_src emacs-lisp
+
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+#+end_src
+
