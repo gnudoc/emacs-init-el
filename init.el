@@ -9,11 +9,11 @@
 
 (package-initialize)
 (unless package-archive-contents
- (package-refresh-contents))
+  (package-refresh-contents))
 
 ;; Initialize use-package on non-Linux platforms
 (unless (package-installed-p 'use-package)
-   (package-install 'use-package))
+  (package-install 'use-package))
 
 (require 'use-package)
 (setq use-package-always-ensure t)
@@ -239,7 +239,7 @@
   :config (counsel-projectile-mode))
 
 ;; the first time you run emacs with this config it'll complain that some function definition is void or something like that.
-;; you have to (unload-feature sqlite3) then (require 'sqlite3) again.
+;; you have to (unload-feature 'sqlite3) then (require 'sqlite3) again.
 (use-package sqlite3)
 
 (require 'sqlite3)
