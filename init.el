@@ -19,8 +19,8 @@
 (setq use-package-always-ensure t)
 
 ;; You will most likely need to adjust these font sizes for your system
-(defvar nij/default-font-size 130)
-(defvar nij/default-variable-font-size 140)
+(defvar nij/default-font-size 120)
+(defvar nij/default-variable-font-size 120)
 
 (setq inhibit-startup-message t)
 
@@ -43,11 +43,11 @@
                 eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(set-face-attribute 'default nil :font "Fira Code Retina" :height nij/default-font-size)
-;;(set-face-attribute 'default nil :font "FiraCode Nerd Font") another slightly lighter-weight version
+;;(set-face-attribute 'default nil :font "Fira Code Retina" :height nij/default-font-size)
+(set-face-attribute 'default nil :font "FiraCode Nerd Font") ;;another slightly lighter-weight version
 
 ;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height 130)
+(set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height 130)
 
 ;; Set the variable pitch face
 (set-face-attribute 'variable-pitch nil :font "Cantarell" :height 140 :weight 'regular)
@@ -189,6 +189,23 @@
       (org-babel-tangle))))
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'nij/org-babel-tangle-config)))
 
+(setq treesit-language-source-alist
+   '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+     (cmake "https://github.com/uyha/tree-sitter-cmake")
+     (css "https://github.com/tree-sitter/tree-sitter-css")
+     (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+     (go "https://github.com/tree-sitter/tree-sitter-go")
+     (html "https://github.com/tree-sitter/tree-sitter-html")
+     (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+     (json "https://github.com/tree-sitter/tree-sitter-json")
+     (make "https://github.com/alemuller/tree-sitter-make")
+     (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+     (python "https://github.com/tree-sitter/tree-sitter-python")
+     (toml "https://github.com/tree-sitter/tree-sitter-toml")
+     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+     (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+     (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+
 (defun nij/lsp-mode-setup ()
   (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
   (lsp-headerline-breadcrumb-mode))
@@ -238,30 +255,6 @@
 (use-package counsel-projectile
   :config (counsel-projectile-mode))
 
-;; the first time you run emacs with this config it'll complain that some function definition is void or something like that.
-;; you have to (unload-feature 'sqlite3) then (require 'sqlite3) again.
-(use-package sqlite3)
-
-(require 'sqlite3)
-
-(setq dbh (sqlite3-open "person.sqlite3" sqlite-open-readwrite sqlite-open-create))
-(sqlite3-exec dbh "create table temp (name text, age integer)")
-(setq stmt (sqlite3-prepare dbh "insert into temp values (?,?)"))
-(cl-loop for i from 1 to 10 do
-         (sqlite3-bind-multi stmt (format "name%d" i) i)
-          ;; execute the SQL
-         (sqlite3-step stmt)
-         ;; call reset if you want to bind the SQL to a new set of variables
-         (sqlite3-reset stmt))
-(sqlite3-finalize stmt)
-
-(setq stmt (sqlite3-prepare dbh "select * from temp"))
-(while (= sqlite-row (sqlite3-step stmt))
-  (cl-destructuring-bind (name age) (sqlite3-fetch stmt)
-    (message "name: %s, age: %d" name age)))
-(sqlite3-finalize stmt)
-(sqlite3-close dbh)
-
 (use-package magit
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
@@ -273,3 +266,29 @@
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
+
+(use-package dired
+  :ensure nil
+  :commands (dired dired-jump)
+  :custom ((dired-listing-switches "-alh --group-directories-first")))
+
+(use-package all-the-icons-dired
+  ;:hook (dired-mode . all-the-icons-dired-mode)
+  )
+
+(use-package dired-hide-dotfiles
+  ;:hook (dired-mode . dired-hide-dotfiles-mode)
+  )
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(dired-hide-dotfiles all-the-icons-dired rainbow-delimiters forge magit counsel-projectile projectile company-box company lsp-ivy lsp-treemacs lsp-ui lsp-mode visual-fill-column org-bullets helpful counsel ivy-rich ivy which-key doom-modeline nerd-icons all-the-icons doom-themes)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
