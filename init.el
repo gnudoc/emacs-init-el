@@ -18,6 +18,8 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+
 ;; You will most likely need to adjust these font sizes for your system
 (defvar nij/default-font-size 120)
 (defvar nij/default-variable-font-size 120)
@@ -40,7 +42,8 @@
 (dolist (mode '(org-mode-hook
                 term-mode-hook
                 shell-mode-hook
-                eshell-mode-hook))
+                eshell-mode-hook
+                vterm-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;;(set-face-attribute 'default nil :font "Fira Code Retina" :height nij/default-font-size)
