@@ -1,6 +1,6 @@
 ;; Note that init.el is generated from ./Emacs.org - that is the file that should be editted.
 
-;; Initialize package sources
+;; Initialise package sources
 (require 'package)
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -11,7 +11,7 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
-;; Initialize use-package on non-Linux platforms
+;; Initialise use-package on non-Linux platforms
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 

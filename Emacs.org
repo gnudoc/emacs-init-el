@@ -7,10 +7,10 @@
 #+end_src
 
 * Package System Setup
-I'm using the [[https://github.com/jwiegley/use-package][use-package]] system here, rather than the built-in package.el system.
+I'm using the [[https://github.com/jwiegley/use-package][use-package]] system here, rather than the built-in package.el system. Consider elpaca in future?
 #+begin_src emacs-lisp
 
-  ;; Initialize package sources
+  ;; Initialise package sources
   (require 'package)
 
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -21,7 +21,7 @@ I'm using the [[https://github.com/jwiegley/use-package][use-package]] system he
   (unless package-archive-contents
     (package-refresh-contents))
 
-  ;; Initialize use-package on non-Linux platforms
+  ;; Initialise use-package on non-Linux platforms
   (unless (package-installed-p 'use-package)
     (package-install 'use-package))
 
