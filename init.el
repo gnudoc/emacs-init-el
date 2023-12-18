@@ -18,6 +18,12 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+;; alpha 100 is opaque, alpha 0 is fully transparent
+(add-to-list 'default-frame-alist '(alpha-background . 100))
+
+;; start every frame maximized
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
 ;; You will most likely need to adjust these font sizes for your system
 (defvar nij/default-font-size 120)
 (defvar nij/default-variable-font-size 120)
@@ -40,7 +46,9 @@
 (dolist (mode '(org-mode-hook
                 term-mode-hook
                 shell-mode-hook
-                eshell-mode-hook))
+                eshell-mode-hook
+                vterm-mode-hook
+                eww-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;;(set-face-attribute 'default nil :font "Fira Code Retina" :height nij/default-font-size)
@@ -279,16 +287,22 @@
 (use-package dired-hide-dotfiles
   ;:hook (dired-mode . dired-hide-dotfiles-mode)
   )
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(dired-hide-dotfiles all-the-icons-dired rainbow-delimiters forge magit counsel-projectile projectile company-box company lsp-ivy lsp-treemacs lsp-ui lsp-mode visual-fill-column org-bullets helpful counsel ivy-rich ivy which-key doom-modeline nerd-icons all-the-icons doom-themes)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+
+(use-package pdf-tools
+  :defer t
+  :commands (pdf-loader-install)
+  :mode "\\.pdf\\'"
+  :bind (:map pdf-view-mode-map
+              ("C-=" . pdf-view-enlarge)
+              ("C--" . pdf-view-shrink))
+  :init (pdf-loader-install)
+  :config (add-to-list 'revert-without-query ".pdf"))
+
+(add-hook 'pdf-view-mode-hook #'(lambda () (interactive) (display-line-numbers-mode -1)))
+
+(use-package vterm
+:config
+(setq shell-file-name "/bin/sh"
+      vterm-max-scrollback 5000))
+
+(use-package sudo-edit)

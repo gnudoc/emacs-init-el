@@ -33,31 +33,38 @@ I'm using the [[https://github.com/jwiegley/use-package][use-package]] system he
 * Basic UI Config
 Make default font sizes in case we want them. Hide away some UI elements that we don't want, like the scroll-bar, tool-bar, tooltips and menu-bar.
 #+begin_src emacs-lisp
+      ;; alpha 100 is opaque, alpha 0 is fully transparent
+      (add-to-list 'default-frame-alist '(alpha-background . 100))
 
-  ;; You will most likely need to adjust these font sizes for your system
-  (defvar nij/default-font-size 120)
-  (defvar nij/default-variable-font-size 120)
+      ;; start every frame maximized
+      (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
-  (setq inhibit-startup-message t)
+      ;; You will most likely need to adjust these font sizes for your system
+      (defvar nij/default-font-size 120)
+      (defvar nij/default-variable-font-size 120)
 
-  (scroll-bar-mode -1)        ; Disable visible scrollbar
-  (tool-bar-mode -1)          ; Disable the toolbar
-  (tooltip-mode -1)           ; Disable tooltips
-  (set-fringe-mode 10)        ; Give some breathing room
-  (menu-bar-mode -1)            ; Disable the menu bar - comment this if you're not confident with keybindings yet
+      (setq inhibit-startup-message t)
 
-  ;; Set up the visible bell
-  (setq visible-bell t)
+      (scroll-bar-mode -1)        ; Disable visible scrollbar
+      (tool-bar-mode -1)          ; Disable the toolbar
+      (tooltip-mode -1)           ; Disable tooltips
+      (set-fringe-mode 10)        ; Give some breathing room
+      (menu-bar-mode -1)            ; Disable the menu bar - comment this if you're not confident with keybindings yet
 
-  (column-number-mode)
-  (global-display-line-numbers-mode t)
+      ;; Set up the visible bell
+      (setq visible-bell t)
 
-  ;; Disable line numbers for some modes
-  (dolist (mode '(org-mode-hook
-                  term-mode-hook
-                  shell-mode-hook
-                  eshell-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+      (column-number-mode)
+      (global-display-line-numbers-mode t)
+
+      ;; Disable line numbers for some modes
+      (dolist (mode '(org-mode-hook
+                      term-mode-hook
+                      shell-mode-hook
+                      eshell-mode-hook
+                      vterm-mode-hook
+                      eww-mode-hook))
+        (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 #+end_src
 
@@ -439,4 +446,31 @@ Some slight customisation of the awesome built-in dired; note the :ensure nil li
   (use-package dired-hide-dotfiles
     ;:hook (dired-mode . dired-hide-dotfiles-mode)
     )
+#+end_src
+* PDF Tools
+This is from https://github.com/vedang/pdf-tools
+#+begin_src emacs-lisp
+  (use-package pdf-tools
+    :defer t
+    :commands (pdf-loader-install)
+    :mode "\\.pdf\\'"
+    :bind (:map pdf-view-mode-map
+                ("C-=" . pdf-view-enlarge)
+                ("C--" . pdf-view-shrink))
+    :init (pdf-loader-install)
+    :config (add-to-list 'revert-without-query ".pdf"))
+
+  (add-hook 'pdf-view-mode-hook #'(lambda () (interactive) (display-line-numbers-mode -1)))
+#+end_src
+* Vterm
+#+begin_src emacs-lisp
+  (use-package vterm
+  :config
+  (setq shell-file-name "/bin/sh"
+        vterm-max-scrollback 5000))
+#+end_src
+* Sudo edit
+https://github.com/nflath/sudo-edit
+#+begin_src emacs-lisp
+(use-package sudo-edit)
 #+end_src
