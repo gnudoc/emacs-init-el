@@ -1,4 +1,4 @@
-#+title: Emacs From Scratch configuration
+#+title: Emacs From Scratch config
 #+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
 
 * Preamble
@@ -7,26 +7,23 @@
 #+end_src
 
 * Package System Setup
-I'm using the [[https://github.com/jwiegley/use-package][use-package]] system here, rather than the built-in package.el system.
+I'm using the [[https://github.com/jwiegley/use-package][use-package]] system with elpa and melpa.
 #+begin_src emacs-lisp
 
   ;; Initialize package sources
-  (require 'package)
 
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/")))
-
-  (package-initialize)
-  (unless package-archive-contents
-    (package-refresh-contents))
-
-  ;; Initialize use-package on non-Linux platforms
-  (unless (package-installed-p 'use-package)
-    (package-install 'use-package))
-
-  (require 'use-package)
-  (setq use-package-always-ensure t)
+  (condition-case nil
+      (require 'use-package)
+    (file-error
+     (require 'package)
+     (add-to-list package-archives '("melpa" . "https://melpa.org/packages/"))
+     (package-initialize)
+     (package-refresh-contents)
+     ;; Initialize use-package on non-Linux platforms
+     (unless (package-installed-p 'use-package)
+       (package-install 'use-package))
+     (setq use-package-always-ensure t)
+     (require 'use-package)))
 
 #+end_src
 
@@ -97,7 +94,7 @@ Look at lots of [[https://github.com/hlissner/emacs-doom-themes][doom-themes]] h
 #+end_src
 
 ** Modeline
-Another element of doom emacs that's nice is the [[https://github.com/seagle0128/doom-modeline][modeline]]. It also has a bunch of its own config options. On first run you'll need to do =M-x all-the-icons-install-fonts= 
+Another element of doom emacs that's nice is the [[https://github.com/seagle0128/doom-modeline][modeline]]. It also has a bunch of its own config options. On first run you'll need to do =M-x all-the-icons-install-fonts=
 #+begin_src emacs-lisp
 
   (use-package all-the-icons)
@@ -248,7 +245,7 @@ There's loads more you could do, eg for org-agenda. see systemcrafters emacs-fro
 ** Visual centring of org buffer
 We use [[https://github.com/joostkremers/visual-fill-column][visual-fill-column]] here. The column width will need to be changed for different screens
 #+begin_src emacs-lisp
-  
+
   (defun nij/org-mode-visual-fill ()
     (setq visual-fill-column-width 250
           visual-fill-column-center-text t)
@@ -285,7 +282,7 @@ More [[https://orgmode.org/manual/Structure-Templates.html][here]].
 #+end_src
 
 ** Auto-tangle Config Files
-Any time an org-mode buffer gets saved, our function gets run.  If the org-mode file being saved is this one, then the code snippets are all sent to their respective files.
+Any time an org-mode buffer gets saved, our function gets run. If the org-mode file being saved is this one, then the code snippets are all sent to their respective files.
 #+begin_src emacs-lisp
 
   ;; Automatically tange our Emacs.org config file when we save it
@@ -296,36 +293,62 @@ Any time an org-mode buffer gets saved, our function gets run.  If the org-mode 
       (let ((org-confirm-babel-evaluate nil))
         (org-babel-tangle))))
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'nij/org-babel-tangle-config)))
-  
+
 #+end_src
 
 * Dev stuff
+** Useful keybinds for C++
+So far just C-c c bound to M-x compile and C-c s
+#+begin_src emacs-lisp
+  (add-hook 'c++-mode-hook
+            (lambda ()
+              (local-set-key (kbd "C-c c") 'compile)))
+
+  (defun shell-other-window ()
+  "Open a 'shell' in a new window."
+  (interactive)
+  (let ((buf (shell)))
+    (switch-to-buffer (other-buffer buf))
+    (switch-to-buffer-other-window buf))
+  )
+
+  (add-hook 'c++-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c s") 'shell-other-window)))
+
+#+end_src
 ** Languages
 *** Tree-sitter language grammar
 The command M-x treesit-install-language-grammar will install a language grammar for tree-sitter, but you have to point it at the grammar using the following variable. =https://www.masteringemacs.org/article/how-to-get-started-tree-sitter= for more.
 #+begin_src emacs-lisp
-(setq treesit-language-source-alist
-   '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-     (cmake "https://github.com/uyha/tree-sitter-cmake")
-     (css "https://github.com/tree-sitter/tree-sitter-css")
-     (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-     (go "https://github.com/tree-sitter/tree-sitter-go")
-     (html "https://github.com/tree-sitter/tree-sitter-html")
-     (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-     (json "https://github.com/tree-sitter/tree-sitter-json")
-     (make "https://github.com/alemuller/tree-sitter-make")
-     (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-     (python "https://github.com/tree-sitter/tree-sitter-python")
-     (toml "https://github.com/tree-sitter/tree-sitter-toml")
-     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-     (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-     (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+  (setq treesit-language-source-alist
+     '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+       (c "https://github.com/tree-sitter/tree-sitter-c")
+       (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
+       (cmake "https://github.com/uyha/tree-sitter-cmake")
+       (css "https://github.com/tree-sitter/tree-sitter-css")
+       (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+       (go "https://github.com/tree-sitter/tree-sitter-go")
+       (html "https://github.com/tree-sitter/tree-sitter-html")
+       (java "https://github.com/tree-sitter/tree-sitter-java")
+       (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+       (json "https://github.com/tree-sitter/tree-sitter-json")
+       (make "https://github.com/alemuller/tree-sitter-make")
+       (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+       (php "https://github.com/tree-sitter/tree-sitter-php")
+       (python "https://github.com/tree-sitter/tree-sitter-python")
+       (regex "https://github.com/tree-sitter/tree-sitter-regex")
+       (rust "https://github.com/tree-sitter/tree-sitter-rust")
+       (toml "https://github.com/tree-sitter/tree-sitter-toml")
+       (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+       (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+       (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 #+end_src
-*** IDE Features with lsp-mode
+*** IDE Features with lsp-mode - eglot now builtin, try that instead
 **** lsp-mode
 [[https://emacs-lsp.github.io/lsp-mode/][lsp-mode]] allows communication with an external language server for IDE-style features.
-=[[https://emacs-lsp.github.io/lsp-mode/page/languages/][Check]] the docs for the languages you need= before proceeding, to install the right external packages / dependencies.
-#+begin_src emacs-lisp
+= [[https://emacs-lsp.github.io/lsp-mode/page/languages/][Check]] the docs for the languages you need= before proceeding, to install the right external packages / dependencies.
+;;#+begin_src emacs-lisp
 
   (defun nij/lsp-mode-setup ()
     (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
@@ -338,46 +361,46 @@ The command M-x treesit-install-language-grammar will install a language grammar
     :init (setq lsp-keymap-prefix "C-c l")
     :config (lsp-enable-which-key-integration t))
 
-#+end_src
+;;#+end_src
 
 **** lsp-ui
 [[https://emacs-lsp.github.io/lsp-ui/][UI enhancements]] to make it even more IDE-ish.
-#+begin_src emacs-lisp
+;;#+begin_src emacs-lisp
 
   (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
   :custom (lsp-ui-doc-position 'bottom))
 
-#+end_src
+;;#+end_src
 
 **** lsp-treemacs
 [[https://github.com/emacs-lsp/lsp-treemacs][lsp-treemacs]] provides various tree views. Try =M-x lsp-treemacs-symbols= or =M-x lsp-treemacs-references= or =M-x lsp-treemacs-error-list=
-#+begin_src emacs-lisp
+;;#+begin_src emacs-lisp
 
   (use-package lsp-treemacs
     :after lsp)
 
-#+end_src
+;;#+end_src
 
 **** lsp-ivy
 [[https://github.com/emacs-lsp/lsp-ivy][lsp-ivy]] provides searching by symbol within the code. lsp-ivy-workspace-symbol and lsp-ivy-global-workspace-symbol
-#+begin_src emacs-lisp
+;;#+begin_src emacs-lisp
 
   (use-package lsp-ivy)
 
-#+end_src
+;;#+end_src
 
 ** Company mode
 For nicer than completion-at-point
 #+begin_src emacs-lisp
 
   (use-package company
-    :after lsp-mode
-    :hook (lsp-mode . company-mode)
+    ;;:after lsp-mode
+    ;;:hook (lsp-mode . company-mode)
     :bind (:map company-active-map
            ("<tab>" . company-complete-selection))
-          (:map lsp-mode-map
-           ("<tab>" . company-indent-or-complete-common))
+    ;;      (:map lsp-mode-map
+    ;;       ("<tab>" . company-indent-or-complete-common))
     :custom
     (company-minimum-prefix-length 1)
     (company-idle-delay 0.0))
@@ -462,15 +485,51 @@ This is from https://github.com/vedang/pdf-tools
 
   (add-hook 'pdf-view-mode-hook #'(lambda () (interactive) (display-line-numbers-mode -1)))
 #+end_src
+* LaTeX
+#+begin_src emacs-lisp
+   (use-package auctex
+   :config
+   ;; to use pdfview with auctex
+   (setq TeX-view-program-selection '(((output-dvi has-no-display-manager) "dvi2tty")
+                                      ((output-dvi style-pstricks) "dvips and gv")
+                                      (output-dvi "xdvi")
+                                      (output-pdf "PDF Tools")
+                                      (output-html "xdg-open"))
+     TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view))
+     TeX-source-correlate-start-server t) ;; not sure if last line is neccessary
+
+   ;; to have the buffer refresh after compilation
+   (add-hook 'TeX-after-compilation-finished-functions
+         #'TeX-revert-document-buffer))
+#+end_src
 * Vterm
 #+begin_src emacs-lisp
   (use-package vterm
   :config
-  (setq shell-file-name "/bin/sh"
+  (setq shell-file-name "/bin/bash"
         vterm-max-scrollback 5000))
 #+end_src
 * Sudo edit
 https://github.com/nflath/sudo-edit
 #+begin_src emacs-lisp
 (use-package sudo-edit)
+#+end_src
+
+* EMMS
+Let's see if we can get emms working
+#+begin_src emacs-lisp
+        (use-package emms)
+      (require 'emms-setup)
+      (emms-all)
+      (setq emms-source-file-default-directory (expand-file-name "~/Music/"))
+
+;;    (setq emms-player-mpd-server-name "localhost")
+;;    (setq emms-player-mpd-server-port "6600")
+;;    (setq emms-player-mpd-music-directory "~/Music")
+;;    (add-to-list 'emms-info-functions 'emms-info-mpd)
+;;  (add-to-list 'emms-player-list 'emms-player-mpd)
+;;  (emms-player-mpd-connect)
+;;  (add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
+
+
 #+end_src
