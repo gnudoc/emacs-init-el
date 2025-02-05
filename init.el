@@ -1,22 +1,19 @@
 ;; Note that init.el is generated from ./Emacs.org - that is the file that should be editted.
 
 ;; Initialize package sources
-(require 'package)
 
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                         ("org" . "https://orgmode.org/elpa/")
-                         ("elpa" . "https://elpa.gnu.org/packages/")))
-
-(package-initialize)
-(unless package-archive-contents
-  (package-refresh-contents))
-
-;; Initialize use-package on non-Linux platforms
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
+(condition-case nil
+    (require 'use-package)
+  (file-error
+   (require 'package)
+   (add-to-list package-archives '("melpa" . "https://melpa.org/packages/"))
+   (package-initialize)
+   (package-refresh-contents)
+   ;; Initialize use-package on non-Linux platforms
+   (unless (package-installed-p 'use-package)
+     (package-install 'use-package))
+   (setq use-package-always-ensure t)
+   (require 'use-package)))
 
 ;; alpha 100 is opaque, alpha 0 is fully transparent
 (add-to-list 'default-frame-alist '(alpha-background . 100))
@@ -197,50 +194,52 @@
       (org-babel-tangle))))
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'nij/org-babel-tangle-config)))
 
+(add-hook 'c++-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c c") 'compile)))
+
+(defun shell-other-window ()
+"Open a 'shell' in a new window."
+(interactive)
+(let ((buf (shell)))
+  (switch-to-buffer (other-buffer buf))
+  (switch-to-buffer-other-window buf))
+)
+
+(add-hook 'c++-mode-hook
+        (lambda ()
+          (local-set-key (kbd "C-c s") 'shell-other-window)))
+
 (setq treesit-language-source-alist
    '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+     (c "https://github.com/tree-sitter/tree-sitter-c")
+     (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
      (cmake "https://github.com/uyha/tree-sitter-cmake")
      (css "https://github.com/tree-sitter/tree-sitter-css")
      (elisp "https://github.com/Wilfred/tree-sitter-elisp")
      (go "https://github.com/tree-sitter/tree-sitter-go")
      (html "https://github.com/tree-sitter/tree-sitter-html")
+     (java "https://github.com/tree-sitter/tree-sitter-java")
      (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
      (json "https://github.com/tree-sitter/tree-sitter-json")
      (make "https://github.com/alemuller/tree-sitter-make")
      (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+     (php "https://github.com/tree-sitter/tree-sitter-php")
      (python "https://github.com/tree-sitter/tree-sitter-python")
+     (regex "https://github.com/tree-sitter/tree-sitter-regex")
+     (rust "https://github.com/tree-sitter/tree-sitter-rust")
      (toml "https://github.com/tree-sitter/tree-sitter-toml")
      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
      (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
      (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
-(defun nij/lsp-mode-setup ()
-  (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
-  (lsp-headerline-breadcrumb-mode))
-
-(use-package lsp-mode
-  :commands (lsp lsp-deferred)
-  :hook ((lsp-mode . nij/lsp-mode-setup)
-         (cc-mode . lsp-deferred)) ;; for c and c++
-  :init (setq lsp-keymap-prefix "C-c l")
-  :config (lsp-enable-which-key-integration t))
-
-(use-package lsp-ui
-:hook (lsp-mode . lsp-ui-mode)
-:custom (lsp-ui-doc-position 'bottom))
-
-(use-package lsp-treemacs
-  :after lsp)
-
-(use-package lsp-ivy)
-
 (use-package company
-  :after lsp-mode
-  :hook (lsp-mode . company-mode)
+  ;;:after lsp-mode
+  ;;:hook (lsp-mode . company-mode)
   :bind (:map company-active-map
          ("<tab>" . company-complete-selection))
-        (:map lsp-mode-map
-         ("<tab>" . company-indent-or-complete-common))
+  ;;      (:map lsp-mode-map
+  ;;       ("<tab>" . company-indent-or-complete-common))
   :custom
   (company-minimum-prefix-length 1)
   (company-idle-delay 0.0))
@@ -300,9 +299,37 @@
 
 (add-hook 'pdf-view-mode-hook #'(lambda () (interactive) (display-line-numbers-mode -1)))
 
+(use-package auctex
+:config
+;; to use pdfview with auctex
+(setq TeX-view-program-selection '(((output-dvi has-no-display-manager) "dvi2tty")
+                                   ((output-dvi style-pstricks) "dvips and gv")
+                                   (output-dvi "xdvi")
+                                   (output-pdf "PDF Tools")
+                                   (output-html "xdg-open"))
+  TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view))
+  TeX-source-correlate-start-server t) ;; not sure if last line is neccessary
+
+;; to have the buffer refresh after compilation
+(add-hook 'TeX-after-compilation-finished-functions
+      #'TeX-revert-document-buffer))
+
 (use-package vterm
 :config
-(setq shell-file-name "/bin/sh"
+(setq shell-file-name "/bin/bash"
       vterm-max-scrollback 5000))
 
 (use-package sudo-edit)
+
+(use-package emms)
+      (require 'emms-setup)
+      (emms-all)
+      (setq emms-source-file-default-directory (expand-file-name "~/Music/"))
+
+;;    (setq emms-player-mpd-server-name "localhost")
+;;    (setq emms-player-mpd-server-port "6600")
+;;    (setq emms-player-mpd-music-directory "~/Music")
+;;    (add-to-list 'emms-info-functions 'emms-info-mpd)
+;;  (add-to-list 'emms-player-list 'emms-player-mpd)
+;;  (emms-player-mpd-connect)
+;;  (add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
