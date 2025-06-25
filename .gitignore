@@ -1,0 +1,10 @@
+*~
+auto-save-list/
+eln-cache/
+elpa/
+emms/
+projectile-bookmarks.eld
+tramp
+transient/
+tree-sitter/
+
