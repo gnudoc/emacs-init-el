@@ -1,19 +1,25 @@
 ;; Note that init.el is generated from ./Emacs.org - that is the file that should be editted.
 
 ;; Initialize package sources
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("org" . "https://orgmode.org/elpa/")
+                         ("elpa" . "https://elpa.gnu.org/packages/")))
 
-(condition-case nil
-    (require 'use-package)
-  (file-error
-   (require 'package)
-   (add-to-list package-archives '("melpa" . "https://melpa.org/packages/"))
-   (package-initialize)
-   (package-refresh-contents)
-   ;; Initialize use-package on non-Linux platforms
-   (unless (package-installed-p 'use-package)
-     (package-install 'use-package))
-   (setq use-package-always-ensure t)
-   (require 'use-package)))
+;; Initialize package system, but defer refreshing contents to avoid startup delays.
+;; We can run M-x package-refresh-contents manually when needed.
+(package-initialize)
+
+;; Ensure 'use-package' is installed and loaded
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents) ; Refresh before installing use-package if it's new
+  (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
+
+;; Only enable 'always-ensure' when Emacs is running interactively.
+;; In batch mode (like for tests), we assume packages are already installed.
+(when (called-interactively-p 'any) 
+ (setq use-package-always-ensure t))
 
 ;; alpha 100 is opaque, alpha 0 is fully transparent
 (add-to-list 'default-frame-alist '(alpha-background . 100))
@@ -45,7 +51,8 @@
                 shell-mode-hook
                 eshell-mode-hook
                 vterm-mode-hook
-                eww-mode-hook))
+                eww-mode-hook
+	      pdf-view-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;;(set-face-attribute 'default nil :font "Fira Code Retina" :height nij/default-font-size)
@@ -60,34 +67,24 @@
 (use-package doom-themes
   :init (load-theme 'doom-dracula t))
 
-(use-package all-the-icons)
-(use-package nerd-icons)
-
 (use-package doom-modeline
+  :after (all-the-icons nerd-icons) ; Explicitly declare dependencies
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 15)))
+
+(use-package all-the-icons) ; Now load them to make them available
+(use-package nerd-icons)
 
 (use-package which-key
   :init (which-key-mode)
   :diminish which-key-mode
   :config
-  (setq which-key-idle-delay 0.5))
+  (setq which-key-idle-delay 0.5)
+;; Add this temporary debug line:
+(message "which-key-idle-delay in batch: %S" which-key-idle-delay))
 
 (use-package ivy
   :diminish
-;;  :bind (("C-s" . swiper)
-;;         :map ivy-minibuffer-map
-;;         ("TAB" . ivy-alt-done)
-;;         ("C-l" . ivy-alt-done)
-;;         ("C-j" . ivy-next-line)
-;;         ("C-k" . ivy-previous-line)
-;;         :map ivy-switch-buffer-map
-;;         ("C-k" . ivy-previous-line)
-;;         ("C-l" . ivy-done)
-;;         ("C-d" . ivy-switch-buffer-kill)
-;;         :map ivy-reverse-i-search-map
-;;         ("C-k" . ivy-previous-line)
-;;         ("C-d" . ivy-reverse-i-search-kill))
   :config
   (ivy-mode 1))
 
@@ -142,22 +139,45 @@
 (defun nij/org-mode-setup ()
   (org-indent-mode)
   (variable-pitch-mode 1)
-  (visual-line-mode 1))
+  (visual-line-mode 1)
 
+ ;; Ensure org-superstar-mode is enabled here if you want to use it for priority display
+  ;; org-superstar-mode uses org-pretty-entities behind the scenes for this.
+  (org-superstar-mode 1)) ; Enable org-superstar-mode
+
+;; Define your custom TODO keywords
+;; 'SEQUENCE' is the name of this particular keyword sequence.
+;; Add URGENT and WAITING as TODO states.
+;; Add CANCELLED as a DONE state.
+(setq org-todo-keywords
+      '(("TODO(t!)" "WAITING(w@/!)" "URGENT(u!)" "|" "DONE(d!)" "CANCELLED(c@)")))
+
+;; Explanation of the syntax:
+;; t: quick access key (type `t` to select TODO)
+;; !: automatically insert a timestamp when the state changes to this keyword.
+;; @: automatically insert a timestamp when the state changes from this keyword.
+;; |: separates TODO states from DONE states.
+;; g: group keywords (e.g., ("URGENT(u!)" "NEXT(n)" "PROJ(p)" | "DONE(d!)" "CANC(c@)"))
+;;   Keywords within the same group (parentheses) are in an exclusive set.
+
+;; Define your custom priority characters (single characters)
+;; These are the internal characters Org Mode uses.
+(setq org-priority-correspondence '(?C ?I ?N ?M)) ; C for Critical, I for Important, N for Nice, Maybe
+
+;; Define how these priority characters should be displayed.
+;; This is a list of associations: (character . "display string")
+(setq org-priority-properties
+      '(
+        (?C . "Critical")
+        (?I . "Important")
+        (?N . "Nice to have")
+        (?M . "Maybe")
+        ))
 
 (use-package org
   :hook (org-mode . nij/org-mode-setup)
   :config
   (setq org-ellipsis " ▾")
-;;  (setq org-agenda-start-with-log-mode t)
-;;  (setq org-log-done 'time)
-;;  (setq org-log-into-drawer t)
-;;  (setq org-agenda-files
-;;	'("~/Documents/OrgFiles/Tasks.org"))
-;;  (require 'org-habit)
-;;  (add-to-list 'org-modules 'org-habit)
-;;  (setq org-habit-graph-column 60) ;; this might need amended
-;;;; there's tons more that can be put in here - look at daviwil's emacs-from-scratch emacs.org org mode section for example
   (nij/org-font-setup))
 
 (use-package org-bullets
@@ -165,6 +185,45 @@
   :hook (org-mode . org-bullets-mode)
   :custom
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+(use-package org-superstar
+  :hook (org-mode . org-superstar-mode)
+  :custom
+  ;; Enable display of custom priority strings
+  (org-superstar-prettify-item-priority t)
+  ;; org-superstar-mode also handles headline bullets by default, but you already have org-bullets.
+  ;; If you prefer org-superstar's bullets, you might set:
+  ;; (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●"))
+  ;; Or if you prefer org-bullets for bullets and only org-superstar for priorities:
+  ;; (setq org-superstar-special-block-types nil) ; Disable block prettification
+  ;; (setq org-superstar-special-todo-keywords nil) ; Disable TODO keyword prettification if org-superstar does it too
+  )(use-package org-superstar
+  :hook (org-mode . org-superstar-mode)
+  :custom
+  ;; Enable display of custom priority strings
+  (org-superstar-prettify-item-priority t)
+  ;; Crucial: Tell org-pretty-entities to apply to priorities.
+  ;; org-superstar often sets this up, but explicit is better for custom cases.
+  ;; We ensure that org-pretty-entities-include-regexp includes priorities.
+  ;; This might be handled by `org-superstar-prettify-item-priority` internally,
+  ;; but sometimes explicit definition of the characters helps.
+  ;; A more direct way to ensure prettification is via `org-superstar-prettifiers`
+  (setq org-superstar-prettifiers
+        (list
+         '(org-superstar-priority-prettifier . org-superstar-prettify-priority)
+         ;; Add other default prettifiers if org-superstar clears them.
+         ;; e.g., '(org-superstar-bullet-prettifier . org-superstar-prettify-bullet)
+         ))
+  ;; And confirm priority faces (even if nil) so org-superstar uses `org-priority-properties`
+  (setq org-superstar-priority-faces nil) ; Setting to nil makes it use `org-priority-properties`
+
+  ;; org-superstar-mode also handles headline bullets by default, but you already have org-bullets.
+  ;; If you prefer org-superstar's bullets, you might set:
+  ;; (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●"))
+  ;; Or if you prefer org-bullets for bullets and only org-superstar for priorities:
+  ;; (setq org-superstar-special-block-types nil) ; Disable block prettification
+  ;; (setq org-superstar-special-todo-keywords nil) ; Disable TODO keyword prettification if org-superstar does it too
+  )
 
 (defun nij/org-mode-visual-fill ()
   (setq visual-fill-column-width 250
@@ -177,15 +236,17 @@
 (org-babel-do-load-languages
   'org-babel-load-languages
   '((emacs-lisp . t)
-    (python . t)))
+    (python . t)
+    (haskell . t)))
 
 (push '("conf-unix" . conf-unix) org-src-lang-modes)
 
 (require 'org-tempo)
 (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
 (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("hs" . "src haskell"))
 
-;; Automatically tange our Emacs.org config file when we save it
+;; Automatically tangle our Emacs.org config file when we save it
 (defun nij/org-babel-tangle-config ()
   (when (string-equal (buffer-file-name)
                       (expand-file-name "~/.emacs.d/Emacs.org"))
@@ -197,6 +258,7 @@
 (add-hook 'c++-mode-hook
           (lambda ()
             (local-set-key (kbd "C-c c") 'compile)))
+
 
 (defun shell-other-window ()
 "Open a 'shell' in a new window."
@@ -210,6 +272,10 @@
         (lambda ()
           (local-set-key (kbd "C-c s") 'shell-other-window)))
 
+(add-hook 'java-mode-hook
+	  (lambda ()
+	    (local-set-key [3 99] 'compile)))
+
 (setq treesit-language-source-alist
    '((bash "https://github.com/tree-sitter/tree-sitter-bash")
      (c "https://github.com/tree-sitter/tree-sitter-c")
@@ -218,6 +284,7 @@
      (css "https://github.com/tree-sitter/tree-sitter-css")
      (elisp "https://github.com/Wilfred/tree-sitter-elisp")
      (go "https://github.com/tree-sitter/tree-sitter-go")
+     (haskell "https://github.com/tree-sitter/tree-sitter-haskell")
      (html "https://github.com/tree-sitter/tree-sitter-html")
      (java "https://github.com/tree-sitter/tree-sitter-java")
      (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
@@ -232,6 +299,49 @@
      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
      (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
      (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+
+(use-package haskell-mode)
+
+(use-package eglot
+  :hook (
+         (haskell-mode . eglot-ensure) ; Auto-start Eglot in Haskell buffers
+         (c++-mode . eglot-ensure)    ; Auto-start Eglot in C++ buffers
+         (java-mode . eglot-ensure)   ; Auto-start Eglot in Java buffers
+         (python-mode . eglot-ensure) ; Auto-start Eglot in Python buffers
+         )
+  :config
+  (setq eglot-autoshutdown nil) ; Keep this nil for testing persistence
+  (setq eglot-connect-timeout 60) ; Give HLS plenty of time to start
+  (setq eglot-stay-alive t) ; Crucial: Tell Eglot to try and keep the server process alive
+
+
+;; ABSOLUTELY EXPLICIT DEFINITION for haskell-mode:
+;; Use `setq` to override any default `eglot-server-programs` that might be present.
+;; Use the full, absolute path to haskell-language-server-wrapper.
+;; The program and its arguments must be a LIST of strings.
+(setq eglot-server-programs
+      '(
+        (haskell-mode . ("/home/nij/.ghcup/bin/haskell-language-server-wrapper" "--lsp"))
+        ;; Add other language modes here following the same pattern:
+        (c++-mode . ("/usr/bin/clangd")) ; Assuming clangd is in PATH
+        (java-mode . ("jdtls")) ; Example
+        (python-mode . ("python3" "-m" "pylsp")) ; Example
+       ))
+
+;; For debugging: verbose logging
+(setq eglot-debug t) ; <--- Let's turn this ON to get more verbose logs
+
+
+  ;; Optional: More aggressive server restart if it dies
+  (setq eglot-auto-server-display nil) ; Don't auto-display server buffer on restart
+  (setq eglot-reconnect-on-change t) ; Attempt reconnect if source file changes
+  
+  ;; Configure how Eglot displays information
+  (setq eglot-autodocument t) ; Show documentation when cursor hovers
+  (setq eglot-autodocument-delay 0.5) ; Delay for documentation hover
+  (setq eglot-display-buffer-function #'eglot-display-buffer-at-bottom) ; Show Eglot buffers at bottom
+
+)
 
 (use-package company
   ;;:after lsp-mode
@@ -274,10 +384,17 @@
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
+(use-package exec-path-from-shell
+:ensure t
+:config
+(when (memq window-system '(mac ns x))
+  (exec-path-from-shell-initialize)))
+
 (use-package dired
   :ensure nil
   :commands (dired dired-jump)
-  :custom ((dired-listing-switches "-alh --group-directories-first")))
+  :custom ((dired-listing-switches "-alh --group-directories-first")
+	     (wdired-allow-to-change-permissions t)))
 
 (use-package all-the-icons-dired
   ;:hook (dired-mode . all-the-icons-dired-mode)
@@ -287,6 +404,10 @@
   ;:hook (dired-mode . dired-hide-dotfiles-mode)
   )
 
+(add-hook 'dired-load-hook
+	  (lambda ()
+	    (load "dired-x")))
+
 (use-package pdf-tools
   :defer t
   :commands (pdf-loader-install)
@@ -295,9 +416,15 @@
               ("C-=" . pdf-view-enlarge)
               ("C--" . pdf-view-shrink))
   :init (pdf-loader-install)
-  :config (add-to-list 'revert-without-query ".pdf"))
+  :config
+  ;; Use `setq` and `regexp-quote` to properly add to revert-without-query
+  (setq revert-without-query (concat "\\(" (regexp-quote ".pdf") "\\|.*\\.pdf\\.lock\\)")))
 
-(add-hook 'pdf-view-mode-hook #'(lambda () (interactive) (display-line-numbers-mode -1)))
+(defun nij/pdf-view-midnight-mode-setup ()
+  "Enable pdf-view-midnight-minor-mode in pdf-view-mode."
+  (pdf-view-midnight-minor-mode 1))
+
+(add-hook 'pdf-view-mode-hook 'nij/pdf-view-midnight-mode-setup)
 
 (use-package auctex
 :config
@@ -318,18 +445,3 @@
 :config
 (setq shell-file-name "/bin/bash"
       vterm-max-scrollback 5000))
-
-(use-package sudo-edit)
-
-(use-package emms)
-      (require 'emms-setup)
-      (emms-all)
-      (setq emms-source-file-default-directory (expand-file-name "~/Music/"))
-
-;;    (setq emms-player-mpd-server-name "localhost")
-;;    (setq emms-player-mpd-server-port "6600")
-;;    (setq emms-player-mpd-music-directory "~/Music")
-;;    (add-to-list 'emms-info-functions 'emms-info-mpd)
-;;  (add-to-list 'emms-player-list 'emms-player-mpd)
-;;  (emms-player-mpd-connect)
-;;  (add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
