@@ -476,10 +476,12 @@ For nicer than completion-at-point
   (use-package company
     ;;:after lsp-mode
     ;;:hook (lsp-mode . company-mode)
-    :bind (:map company-active-map
-           ("<tab>" . company-complete-selection))
+    ;;:bind (:map company-active-map
+    ;;       ("<tab>" . company-complete-selection))
     ;;      (:map lsp-mode-map
     ;;       ("<tab>" . company-indent-or-complete-common))
+    :init
+    (global-company-mode)
     :custom
     (company-minimum-prefix-length 1)
     (company-idle-delay 0.0))
@@ -612,7 +614,7 @@ This is from https://github.com/vedang/pdf-tools
 ** At some point, I should try and get EMMS or similar working.
 ** I'd also like to experiment with EXWM.
 ** Set up an init.el that works reasonably well on windows as well as linux (or perhaps a separate init for windows?)
-** Set up IDE-like features for C++
+** DONE Set up IDE-like features for C++
 ** Lazy loading with :defer, :demand, :commands
 ** use use-package more consistently
 *** should I do (use-package emacs)

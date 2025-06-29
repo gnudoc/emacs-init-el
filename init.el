@@ -347,10 +347,12 @@
 (use-package company
   ;;:after lsp-mode
   ;;:hook (lsp-mode . company-mode)
-  :bind (:map company-active-map
-         ("<tab>" . company-complete-selection))
+  ;;:bind (:map company-active-map
+  ;;       ("<tab>" . company-complete-selection))
   ;;      (:map lsp-mode-map
   ;;       ("<tab>" . company-indent-or-complete-common))
+  :init
+  (global-company-mode)
   :custom
   (company-minimum-prefix-length 1)
   (company-idle-delay 0.0))
@@ -447,22 +449,3 @@
 :config
 (setq shell-file-name "/bin/bash"
       vterm-max-scrollback 5000))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(all-the-icons-dired auctex company-box counsel-projectile
-			 dired-hide-dotfiles doom-modeline doom-themes
-			 exec-path-from-shell forge haskell-mode
-			 helpful ivy-rich llama magit markdown-mode
-			 org-bullets org-superstar pdf-tools
-			 rainbow-delimiters transient
-			 visual-fill-column vterm with-editor yaml)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
