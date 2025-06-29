@@ -18,8 +18,9 @@
 
 ;; Only enable 'always-ensure' when Emacs is running interactively.
 ;; In batch mode (like for tests), we assume packages are already installed.
-(when (called-interactively-p 'any) 
- (setq use-package-always-ensure t))
+;;(when (called-interactively-p 'any) 
+ (setq use-package-always-ensure t)
+;;)
 
 ;; alpha 100 is opaque, alpha 0 is fully transparent
 (add-to-list 'default-frame-alist '(alpha-background . 100))
@@ -373,13 +374,14 @@
   :config (counsel-projectile-mode))
 
 (use-package magit
+  :ensure t
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
 ;; NOTE: Make sure to configure a GitHub token before using this package!
 ;; - https://magit.vc/manual/forge/Token-Creation.html#Token-Creation
 ;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
-(use-package forge)
+(use-package forge :ensure t)
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -445,3 +447,22 @@
 :config
 (setq shell-file-name "/bin/bash"
       vterm-max-scrollback 5000))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(all-the-icons-dired auctex company-box counsel-projectile
+			 dired-hide-dotfiles doom-modeline doom-themes
+			 exec-path-from-shell forge haskell-mode
+			 helpful ivy-rich llama magit markdown-mode
+			 org-bullets org-superstar pdf-tools
+			 rainbow-delimiters transient
+			 visual-fill-column vterm with-editor yaml)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )

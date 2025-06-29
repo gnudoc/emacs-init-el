@@ -10,26 +10,27 @@
 I'm using the [[https://github.com/jwiegley/use-package][use-package]] system with elpa and melpa.
 #+begin_src emacs-lisp
 
-  ;; Initialize package sources
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/")))
+    ;; Initialize package sources
+    (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                             ("org" . "https://orgmode.org/elpa/")
+                             ("elpa" . "https://elpa.gnu.org/packages/")))
 
-  ;; Initialize package system, but defer refreshing contents to avoid startup delays.
-  ;; We can run M-x package-refresh-contents manually when needed.
-  (package-initialize)
+    ;; Initialize package system, but defer refreshing contents to avoid startup delays.
+    ;; We can run M-x package-refresh-contents manually when needed.
+    (package-initialize)
 
-  ;; Ensure 'use-package' is installed and loaded
-  (unless (package-installed-p 'use-package)
-    (package-refresh-contents) ; Refresh before installing use-package if it's new
-    (package-install 'use-package))
-  (eval-when-compile
-    (require 'use-package))
-  
-  ;; Only enable 'always-ensure' when Emacs is running interactively.
-  ;; In batch mode (like for tests), we assume packages are already installed.
-  (when (called-interactively-p 'any) 
-   (setq use-package-always-ensure t))
+    ;; Ensure 'use-package' is installed and loaded
+    (unless (package-installed-p 'use-package)
+      (package-refresh-contents) ; Refresh before installing use-package if it's new
+      (package-install 'use-package))
+    (eval-when-compile
+      (require 'use-package))
+    
+    ;; Only enable 'always-ensure' when Emacs is running interactively.
+    ;; In batch mode (like for tests), we assume packages are already installed.
+    ;;(when (called-interactively-p 'any) 
+     (setq use-package-always-ensure t)
+    ;;)
 #+end_src
 
 * Basic UI Config
@@ -512,13 +513,14 @@ For nicer than completion-at-point
 #+begin_src emacs-lisp
 
   (use-package magit
+    :ensure t
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
   ;; NOTE: Make sure to configure a GitHub token before using this package!
   ;; - https://magit.vc/manual/forge/Token-Creation.html#Token-Creation
   ;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
-  (use-package forge)
+  (use-package forge :ensure t)
 
 #+end_src
 
