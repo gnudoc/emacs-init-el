@@ -385,6 +385,17 @@
 ;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
 (use-package forge :ensure t)
 
+(use-package ssh-agency
+:ensure t
+:config
+;; This line is crucial to make it actually do something
+;; It ensures the agent is running and keys are added when needed.
+(ssh-agency-ensure)
+
+;; Optional: Customize keys to add
+(setq ssh-agency-keys (list "~/.ssh/id_ed25519_github"))
+)
+
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
