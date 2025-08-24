@@ -81,8 +81,6 @@
   :diminish which-key-mode
   :config
   (setq which-key-idle-delay 0.5)
-;; Add this temporary debug line:
-(message "which-key-idle-delay in batch: %S" which-key-idle-delay))
 
 (use-package ivy
   :diminish
@@ -310,56 +308,56 @@
 (add-hook 'haskell-interactive-mode-hook #'my-haskell-interactive-mode-hook)
 
 (use-package eglot
-  :hook (
-         (haskell-mode . eglot-ensure) ; Auto-start Eglot in Haskell buffers
-         (c++-mode . eglot-ensure)    ; Auto-start Eglot in C++ buffers
-         (java-mode . eglot-ensure)   ; Auto-start Eglot in Java buffers
-         (python-mode . eglot-ensure) ; Auto-start Eglot in Python buffers
-         )
-  :config
-  (setq eglot-autoshutdown nil) ; Keep this nil for testing persistence
-  (setq eglot-connect-timeout 60) ; Give HLS plenty of time to start
-  (setq eglot-stay-alive t) ; Crucial: Tell Eglot to try and keep the server process alive
+  :ensure t
+  :hook ((c++-mode . eglot-ensure)
+	   (java-mode . eglot-ensure)
+	   (python-mode . eglot-ensure)) 
+ :config
+;; Define a general hook for Eglot-managed buffers
+;;(add-hook 'eglot-managed-mode-hook
+;;          (lambda ()
+;;            ;; Turn on flymake for diagnostics and eglot-hover
+;;            (flymake-mode 1)
+;;            (eglot-hover-mode 1)))
+;; Define a company-specific hook
+;;(add-hook 'eglot-mode-hook
+;;          (lambda ()
+;;            ;; Add eglot-capf as a company backend
+;;            (add-to-list 'company-backends 'eglot-capf)))
+;; Set up keymap prefix for eglot commands
+(setq eglot-keymap-prefix "C-c l")
 
-
-;; ABSOLUTELY EXPLICIT DEFINITION for haskell-mode:
-;; Use `setq` to override any default `eglot-server-programs` that might be present.
-;; Use the full, absolute path to haskell-language-server-wrapper.
-;; The program and its arguments must be a LIST of strings.
+;; Eglot server programs with explicit paths
 (setq eglot-server-programs
-      '(
-        (haskell-mode . ("/home/nij/.ghcup/bin/haskell-language-server-wrapper" "--lsp"))
-        ;; Add other language modes here following the same pattern:
-        (c++-mode . ("/usr/bin/clangd")) ; Assuming clangd is in PATH
-        (java-mode . ("jdtls")) ; Example
-        (python-mode . ("python3" "-m" "pylsp")) ; Example
-       ))
+  '(
+    (c++-mode . ("clangd"))
+    (c-mode . ("clangd"))
+    (java-mode . ("jdtls"))
+    (python-mode . ("python3" "-m" "pylsp"))
+    ))
 
-;; For debugging: verbose logging
-(setq eglot-debug t) ; <--- Let's turn this ON to get more verbose logs
-
-
-  ;; Optional: More aggressive server restart if it dies
-  (setq eglot-auto-server-display nil) ; Don't auto-display server buffer on restart
-  (setq eglot-reconnect-on-change t) ; Attempt reconnect if source file changes
-  
-  ;; Configure how Eglot displays information
-  (setq eglot-autodocument t) ; Show documentation when cursor hovers
-  (setq eglot-autodocument-delay 0.5) ; Delay for documentation hover
-  (setq eglot-display-buffer-function #'eglot-display-buffer-at-bottom) ; Show Eglot buffers at bottom
-
-)
+;; Configuration for server stability and display
+(setq eglot-autoshutdown nil)
+(setq eglot-connect-timeout 60)
+(setq eglot-stay-alive t)
+(setq eglot-auto-server-display nil)
+(setq eglot-reconnect-on-change t)
+(setq eglot-autodocument t)
+(setq eglot-autodocument-delay 0.5)
+(setq eglot-display-buffer-function #'eglot-display-buffer-at-bottom))
 
 (use-package company
   ;;:after lsp-mode
   ;;:hook (lsp-mode . company-mode)
-  ;;:bind (:map company-active-map
-  ;;       ("<tab>" . company-complete-selection))
+  :bind (:map company-active-map
+         ("<tab>" . company-complete-selection))
   ;;      (:map lsp-mode-map
   ;;       ("<tab>" . company-indent-or-complete-common))
   :init
   (global-company-mode)
+  :hook (eglot-mode . company-mode)
   :custom
+  (company-backends '(company-capf company-dabbrev))
   (company-minimum-prefix-length 1)
   (company-idle-delay 0.0))
 
