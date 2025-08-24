@@ -1,0 +1,9 @@
+;; Auto-generated file; don't edit -*- mode: lisp-data -*-
+((:url "https://learnyouahaskell.github.io/modules.html" :title
+       "Modules - Learn You a Haskell for Great Good!" :time
+       "Tue Aug  5 16:22:43 2025")
+ (:url
+  "https://learnyouahaskell.github.io/making-our-own-types-and-typeclasses.html"
+  :title
+  "Making Our Own Types and Typeclasses - Learn You a Haskell for Great Good!"
+  :time "Tue Aug  5 16:22:19 2025"))

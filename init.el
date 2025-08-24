@@ -16,7 +16,7 @@
 (eval-when-compile
   (require 'use-package))
 
-;; Only enable 'always-ensure' when Emacs is running interactively.
+;; Only enable 'always-ensure' when Emacs is running interactively
 ;; In batch mode (like for tests), we assume packages are already installed.
 ;;(when (called-interactively-p 'any) 
  (setq use-package-always-ensure t)
@@ -245,7 +245,7 @@
 (require 'org-tempo)
 (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
 (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-(add-to-list 'org-structure-template-alist '("hs" . "src haskell"))
+(add-to-list 'org-structure-template-alist '("hs" . "src haskell :tangle yes"))
 
 ;; Automatically tangle our Emacs.org config file when we save it
 (defun nij/org-babel-tangle-config ()
@@ -303,6 +303,12 @@
 
 (use-package haskell-mode)
 
+(defun my-haskell-interactive-mode-hook ()
+"Custom settings for the interactive Haskell REPL buffer."
+;; The freezing is caused by company-mode so disable it.
+  (company-mode -1)  ; or (corfu-mode -1) if you use corfu
+(add-hook 'haskell-interactive-mode-hook #'my-haskell-interactive-mode-hook)
+
 (use-package eglot
   :hook (
          (haskell-mode . eglot-ensure) ; Auto-start Eglot in Haskell buffers
@@ -358,6 +364,7 @@
   (company-idle-delay 0.0))
 
 (use-package company-box
+  ;; This is just a slightly more pretty front-end for company with icons.
   :hook (company-mode . company-box-mode))
 
 (use-package projectile
@@ -383,7 +390,14 @@
 ;; NOTE: Make sure to configure a GitHub token before using this package!
 ;; - https://magit.vc/manual/forge/Token-Creation.html#Token-Creation
 ;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
-(use-package forge :ensure t)
+(use-package forge
+:ensure t
+:after magit
+:config
+;; This line ensures auth-source-mode is loaded and configured correctly
+(setq auth-sources '("~/.authinfo.gpg"))
+;; Other forge configuration can go here
+)
 
 (use-package ssh-agency
 :ensure t
