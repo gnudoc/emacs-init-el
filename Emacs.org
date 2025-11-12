@@ -1,18 +1,41 @@
 #+title: Emacs From Scratch config
-#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
+#+PROPERTY: header-args :tangle ./init.el :mkdirp yes
+#+STARTUP: content
 
-* Preamble
+* Early-Init Config
+This section contains all code that should be tangled to =early-init.el=.
+It runs *before* package initialization and frame drawing. 
+#+HEADER: :tangle ./early-init.el
 #+begin_src emacs-lisp
+  ;; This should be $HOME/.config/early-init.el
+  (setq package-enable-at-startup nil)
+  (setq inhibit-startup-message t)
+
+  ;; Disable UI elements before they are even drawn
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  (tooltip-mode -1)
+  (menu-bar-mode -1)
+
+  ;; Set frame defaults early - but only when in graphical session
+  (when (display-graphic-p)
+    (add-to-list 'default-frame-alist '(alpha-background . 90))
+    (add-to-list 'default-frame-alist '(fullscreen . maximized)))
+#+end_src
+* Main Init Config
+#+PROPERTY: header-args :tangle ./init.el :mkdirp yes
+This main section all gets tangled to init.el
+** Preamble
+#+begin_src emacs-lisp
+  ;; This should be $HOME/.config/init.el
   ;; Note that init.el is generated from ./Emacs.org - that is the file that should be edited
   ;; on first install, do M-x all-the-icons-install-fonts, M-x treesit-install-language-grammar
   ;; and M-x pdf-tools-install
 #+end_src
-
-* Package System Setup (elpaca)
-** Elpaca
+** Package and System Setup
+*** Elpaca
 Using [[https://github.com/progfolio/elpaca][elpaca]] for fast, parallel, and reproducible package management.
-This code is based on the official README.
-
+This code is based on the official README and I haven't really tried to understand it yet
 #+begin_src emacs-lisp
   ;; --- Elpaca Bootstrap ---
   (defvar elpaca-installer-version 0.11)
@@ -64,27 +87,22 @@ This code is based on the official README.
     (setq elpaca-use-package-by-default t))
 
 #+end_src
-** Shell PATH
+*** Shell PATH
 Ensure Emacs inherits the system $PATH so it can test for programs in the rest of the config
 #+begin_src emacs-lisp
   (use-package exec-path-from-shell
     :ensure t
     :config
-    (when (memq window-system '(x mac ns))
+    (when (display-graphic-p)
       (exec-path-from-shell-initialize)))
 #+end_src
-* Core Emacs Config
-Using =use-package= to configure the built-in Emacs settings.
-This replaces the old "Basic UI Config" and "Font config" sections.
-On linux, we want [[https://github.com/tonsky/FiraCode][FiraCode]] and [[https://fonts.google.com/specimen/Cantarell][Cantarell]]; on windows, Consolas and Segoe UI are defaults apparently.
+** Core Emacs Config
+This section configures core Emacs behavior, fonts, and helper functions.
+*** Basic UI Tweaks
+Configuring the basic look and feel, like line numbers and the bell.
 #+begin_src emacs-lisp
   (use-package emacs
-     
-    :ensure nil ;; This is a built-in package
-    :init
-    ;; Settings to apply very early, before config is fully loaded
-    (setq inhibit-startup-message t)
-
+    :ensure nil
     :config
     ;; --- Basic UI Tweaks ---
     (column-number-mode)
@@ -95,28 +113,31 @@ On linux, we want [[https://github.com/tonsky/FiraCode][FiraCode]] and [[https:/
     (dolist (mode '(org-mode-hook
                     term-mode-hook
                     vterm-mode-hook
-                    shell-mode-hook
+                    shell-mode-hook 
                     eshell-mode-hook
                     eww-mode-hook
-                    pdf-view-mode-hook)) 
-      (add-hook mode (lambda () (display-line-numbers-mode 0)))) 
+                    pdf-view-mode-hook
+  		  nov-mode-hook))
+      (add-hook mode (lambda () (display-line-numbers-mode -1))))
 
-    ;; --- GUI Specific Tweaks ---
-    (when (display-graphic-p) 
-      (add-to-list 'default-frame-alist '(alpha-background . 95))
-      (add-to-list 'default-frame-alist '(fullscreen . maximized)) 
-      (scroll-bar-mode -1) 
-      (tool-bar-mode -1) 
-      (tooltip-mode -1) 
-      (menu-bar-mode -1) 
+    ;; --- GUI Specific Tweaks (that don't belong in early-init) ---
+    (when (display-graphic-p)
       (set-fringe-mode 5)) 
-
+    )
+#+end_src
+*** Font Configuration
+We'll try to find our preferred fonts. On Linux, we want [[https://github.com/tonsky/FiraCode][FiraCode]] (for code) and [[https://fonts.google.com/specimen/Cantarell][Cantarell]] (for variable-pitch text like Org headings).
+On windows, we'll fall back to Consolas and Segoe UI .
+#+begin_src emacs-lisp
+  (use-package emacs
+    :ensure nil
+    :config
     ;; --- Font Configuration ---
     (cond
      ((find-font (font-spec :name "FiraCode Nerd Font"))
       (message "Using FiraCode Nerd Font")
-      (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height 130) 
-      (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height 130)) 
+      (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height 130)
+      (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height 130))
      ((find-font (font-spec :name "Consolas"))
       (message "Using Consolas as a fallback")
       (set-face-attribute 'default nil :font "Consolas" :height 130) 
@@ -126,25 +147,42 @@ On linux, we want [[https://github.com/tonsky/FiraCode][FiraCode]] and [[https:/
 
     (cond
      ((find-font (font-spec :name "Cantarell"))
-      (message "Using Cantarell for variable-pitch") 
+      (message "Using Cantarell for variable-pitch")
       (set-face-attribute 'variable-pitch nil :font "Cantarell" :height 140 :weight 'regular)) 
      ((find-font (font-spec :name "Segoe UI"))
       (message "Using Segoe UI as a fallback for variable pitch") 
-      (set-face-attribute 'variable-pitch nil :font "Segoe UI" :height 140 :weight 'regular)) 
+      (set-face-attribute 'variable-pitch nil :font "Segoe UI" :height 140 :weight 'regular))
      (t
-      (message "Neither Cantarell nor Segoe UI found, using emacs default.")))) 
+      (message "Neither Cantarell nor Segoe UI found, using emacs default."))))
 #+end_src
+*** Helper Functions
+Custom Elisp functions used elsewhere in the configuration .
+#+begin_src emacs-lisp
+  (defun nij/all-the-icons-available-p ()
+    "Check if we are in GUI and all-the-icons fonts are installed."
+    (and (display-graphic-p) (member "all-the-icons" (font-family-list))))
 
-* More UI and UX Config
+  (defun nij/consult-grep-or-ripgrep ()
+    "Run `consult-ripgrep` if available, otherwise fall back to `consult-grep`."
+    (interactive)
+    (if (executable-find "rg")
+        (call-interactively #'consult-ripgrep)
+      (call-interactively #'consult-grep)))
+
+  (defun nij/prettier-format-on-save ()
+    "Add prettier-js-before-save to the buffer-local before-save-hook."
+    (add-hook 'before-save-hook 'prettier-js-before-save nil t))
+#+end_src
+** More UI and UX Config
 Theming, Completion and Help
-** Colour Theme
+*** Colour Theme
 Take suggestions from [[https://github.com/hlissner/emacs-doom-themes][doom-themes]]
 #+begin_src emacs-lisp
   (use-package doom-themes
     :ensure t
     :init (load-theme 'doom-dracula t))
 #+end_src
-** Modeline
+*** Modeline
 Another element of doom emacs that's nice is [[https://github.com/seagle0128/doom-modeline][modeline]]. It has a bunch of its own config options, and on first run it needs =M-x all-the-icons-install-fonts=
 #+begin_src emacs-lisp
   (use-package all-the-icons :ensure t)
@@ -153,29 +191,26 @@ Another element of doom emacs that's nice is [[https://github.com/seagle0128/doo
     :ensure t
     :after (all-the-icons nerd-icons)
     :config
-    (require 'all-the-icons) ;;not sure if this is needed
-    (if (and (display-graphic-p) (member "all-the-icons" (font-family-list)))
-  	(progn
-  	  (doom-modeline-mode 1)
-  	  (setq doom-modeline-height 15))
-          (message "doom-modeline not enabled - either fonts not found or we're in a TTY. M-x all-the-icons-install-fonts")))
+    (if (nij/all-the-icons-available-p)
+        (progn
+          (doom-modeline-mode 1)
+          (setq doom-modeline-height 15))
+      (message "doom-modeline not enabled - either fonts not found or we're in a TTY. M-x all-the-icons-install-fonts")))
 #+end_src
-** Which Key
+*** Which Key
 [[https://github.com/justbur/emacs-which-key][which-key]] offers all completions for any key prefix - now part of default emacs.
 #+begin_src emacs-lisp
   (use-package which-key
     :ensure t
-    :init (which-key-mode)
     :diminish which-key-mode
-    :config (setq which-key-idle-delay 0.5))
+    :config
+    (which-key-mode 1)
+    (setq which-key-idle-delay 0.5))
 #+end_src
-** Vertico, Consult, Marginalia
+*** Vertico and Consult stacks
 The modern, minimal replacement for Ivy, Counsel, and Ivy-rich.
-   =vertico= is the vertical completion UI.
-   =orderless= is the completion style (replaces =ivy=).
-   =consult= provides the powerful search commands (replaces =counsel=).
-   =marginalia= adds the rich annotations (replaces =ivy-rich=).
-
+**** Vertico
+The vertical completion UI
 #+begin_src emacs-lisp
   (use-package vertico
     :ensure t
@@ -183,33 +218,57 @@ The modern, minimal replacement for Ivy, Counsel, and Ivy-rich.
     (vertico-mode 1)
     ;; Add cycling with TAB
     (setq vertico-cycle t))
-
+#+end_src
+**** Orderless
+The completion style, allowing flexible, out-of-order matching
+#+begin_src emacs-lisp
   (use-package orderless
     :ensure t
     :config
     (setq completion-styles '(orderless)
           completion-category-defaults nil
           completion-category-overrides '((file (styles . (partial-completion))))))
-
+#+end_src
+**** Consult
+Search and Nav functions
+#+begin_src emacs-lisp
   (use-package consult
     :ensure t
     :bind
-    ;; Re-bind the keys we had for counsel
     (("M-x" . execute-extended-command)
      ("C-x b" . consult-buffer) ;; A good replacement for counsel-ibuffer
-     ;; C-x C-f (find-file) uses vertico automatically
      :map minibuffer-local-map
-     ("C-r" . consult-history)))
-
+     ("C-r" . consult-history)
+     ("C-c g" . nij/consult-grep-or-ripgrep)
+     ))
+#+end_src
+**** Marginalia
+Rich annotations
+#+begin_src emacs-lisp
   (use-package marginalia
     :ensure t
     :after vertico
     :init
     (marginalia-mode 1))
 #+end_src
-** Helpful
-[[https://github.com/Wilfred/helpful][Helpful]] adds more info to the =describe-*= buffers.
-We're changing this from counsel to corfu.
+**** Embark
+Contextual items for the completion results
+#+begin_src emacs-lisp
+  (use-package embark
+    :ensure t
+    :bind
+    (("C-." . embark-act)
+     ("C-," . embark-collect)
+     ("C-;" . embark-dwim) ; "Do What I Mean"
+     ("C-h B" . embark-bindings)))
+
+  (use-package embark-consult
+    :ensure t
+    :after (embark consult)
+    :hook (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+*** Helpful
+[[https://github.com/Wilfred/helpful][Helpful]] adds more info to the =describe-*= buffers
 #+begin_src emacs-lisp
   (use-package helpful
     :ensure t
@@ -220,16 +279,15 @@ We're changing this from counsel to corfu.
     ([remap describe-variable] . helpful-variable)
     ([remap describe-key] . helpful-key))
 #+end_src
-
-* Org Mode
+** Org Mode
 The famous magic [[https://orgmode.org][Org Mode]]. All sorts of functions. Rich doc editing, project planning, task/time tracking, literate coding, blogging engine, and more.
-** Fonts in Org
+*** Fonts in Org
 A helper function for fonts, with a conditional checking for the variable fonts we like
 #+begin_src emacs-lisp
   (defun nij/org-font-setup ()
-    (font-lock-add-keywords 'org-mode
-  			  '(("^ *\([-]\) "
-  			     (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+    ;(font-lock-add-keywords 'org-mode
+    ;			  '(("^ *\([-]\) "
+    ;			     (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
     (let ((variable-font
            (cond
             ((find-font (font-spec :name "Cantarell")) "Cantarell")
@@ -246,49 +304,62 @@ A helper function for fonts, with a conditional checking for the variable fonts 
                         (org-level-8 . 1.0)))
           (set-face-attribute (car face) nil :font variable-font :weight 'regular :height (cdr face)))))
 
-    (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-block nil :inherit 'fixed-pitch)
     (set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
     (set-face-attribute 'org-table nil :inherit '(shadow fixed-pitch))
     (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
     (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
     (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
     (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
-
 #+end_src
-** Basic Config
+*** Basic Config
 Here are some basics. See systemcrafters emacs-from-scratch for examples.
 #+begin_src emacs-lisp
   (defun nij/org-mode-setup ()
+    "Main org-mode setup function"
     (org-indent-mode)
     (variable-pitch-mode 1)
     (visual-line-mode 1)
+    (nij/org-font-setup)
+    (when (string-equal (buffer-file-name)
+                        (expand-file-name "~/.emacs.d/Emacs.org"))
+      (add-hook 'after-save-hook #'nij/org-babel-tangle-this-file nil t))
     )
 
   (use-package org
-     
     :ensure nil
     :hook (org-mode . nij/org-mode-setup)
     :config
-    (setq org-ellipsis " ▾")
-    (nij/org-font-setup))
+    (setq org-ellipsis " ▾"))
 #+end_src
-** Org Superstar
-Use org-superstar for enhanced display, including custom priorities.
+*** Org Modern
+Use org-modern for enhanced display, including custom priorities instead of my custom code and the org-superstar code
 #+begin_src emacs-lisp
-  (use-package org-superstar
-    :ensure t
-    :hook (org-mode . org-superstar-mode)
-    :custom
-    (org-superstar-prettify-item-priority t)
-    (setq org-superstar-prettifiers
-  	(list
-  	 '(org-superstar-priority-prettifier . org-superstar-prettify-priority)
-  	 ))
-    (setq org-superstar-priority-faces nil)
-    (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●"))
-    )
+  (use-package org-modern
+      :ensure t
+      :hook ((org-mode . org-modern-mode))
+      :config
+      ;; This replaces 'org-superstar-headline-bullets-list'
+      (setq org-modern-headline-bullets
+            '((1 . "◉")
+              (2 . "○")
+              (3 . "●")
+              (4 . "○")
+              (5 . "●")
+              (6 . "○")
+              (7 . "●")))
+      
+      ;; This replaces 'org-superstar-prettify-item-priority'
+      (setq org-modern-prettify-priorities t)
+      
+      ;; This will prettify plain lists (like * or -) as well
+      (setq org-modern-list-bullets
+            '(("*" . "•")
+              ("+" . "–")
+              ("-" . "—")))
+      )
 #+end_src
-** Configure Babel Languages
+*** Configure Babel Languages
 Add a list item to org-babel-load-languages for each language we want to do code blocks for. The conf-unix line lets us do key-value pairs (eg meaning=42) which a lot of *nix programs use for config.
 More info [[https://orgmode.org/worg/org-contrib/babel/languages.html][here]].
 #+begin_src emacs-lisp
@@ -301,8 +372,8 @@ More info [[https://orgmode.org/worg/org-contrib/babel/languages.html][here]].
   (push '("conf-unix" . conf-unix) org-src-lang-modes)
 
 #+end_src
-** Structure Templates
-This allows you to type <el then TAB or <py then TAB and so on to get code blocks inserted into org docs. You can even use it for the custom bits like :tangle or :mkdirp if needed.
+*** Structure Templates
+This allows you to type <el TAB or <py TAB and so on to get code blocks inserted into org docs. You can even use it for the custom bits like :tangle or :mkdirp if needed.
 More [[https://orgmode.org/manual/Structure-Templates.html][here]].
 #+begin_src emacs-lisp
   (use-package org-tempo
@@ -315,52 +386,53 @@ More [[https://orgmode.org/manual/Structure-Templates.html][here]].
     (add-to-list 'org-structure-template-alist '("hs" . "src haskell")))
 
 #+end_src
-** Auto-tangle Config Files
-Any time an org-mode buffer gets saved, our function gets run. If the org-mode file being saved is this one, then the code snippets are all sent to their respective files.
+*** Auto-tangle Config Files
+Any time an org-mode buffer gets saved, our function gets run. If the org-mode file being saved is this one, then the code snippets are all sent to their respective files. 
 #+begin_src emacs-lisp
-
-  (defun nij/org-babel-tangle-config ()
-    "Automatically tangle our Emacs.org config file when we save it"
-    (when (string-equal (buffer-file-name)
-  		      (expand-file-name "~/.emacs.d/Emacs.org"))
-      ;; Dynamic scoping example
-      (let ((org-confirm-babel-evaluate nil))
-        (org-babel-tangle))))
-  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'nij/org-babel-tangle-config)))
-
+  (defun nij/org-babel-tangle-this-file ()
+    "Tangle the current org file, bypassing babel evaluation confirmation.
+  This function is intended to be used as a buffer-local hook
+  only in the Emacs.org file itself."
+    (let ((org-confirm-babel-evaluate nil))
+      (org-babel-tangle-file (buffer-file-name))))
 #+end_src
-* Dev Stuff
-** Languages
-*** Tree-sitter Language Grammars
+
+** Dev Stuff
+*** Languages
+**** Tree-sitter Language Grammars
 The command =M-x treesit-install-language-grammar= , which requires *C and git*, will install a language grammar for tree-sitter, but you have to point it at the grammar using the following variable. See [[https://www.masteringemacs.org/article/how-to-get-started-tree-sitter][Mastering Emacs]] for more.
 #+begin_src emacs-lisp
   (setq treesit-language-source-alist
-    '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-      (c "https://github.com/tree-sitter/tree-sitter-c")
-      (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
-      (cmake "https://github.com/uyha/tree-sitter-cmake")
-      (css "https://github.com/tree-sitter/tree-sitter-css")
-      (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-      (go "https://github.com/tree-sitter/tree-sitter-go")
-      (haskell "https://github.com/tree-sitter/tree-sitter-haskell")
-      (html "https://github.com/tree-sitter/tree-sitter-html")
-      (java "https://github.com/tree-sitter/tree-sitter-java")
-      (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-      (json "https://github.com/tree-sitter/tree-sitter-json")
-      (make "https://github.com/alemuller/tree-sitter-make")
-      (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-      (php "https://github.com/tree-sitter/tree-sitter-php" "master" "php/src")
-      (python "https://github.com/tree-sitter/tree-sitter-python")
-      (regex "https://github.com/tree-sitter/tree-sitter-regex")
-      (rust "https://github.com/tree-sitter/tree-sitter-rust")
-      (toml "https://github.com/tree-sitter/tree-sitter-toml")
-      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-      (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-      (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
-  (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
-  (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+  	(c "https://github.com/tree-sitter/tree-sitter-c")
+  	(cpp "https://github.com/tree-sitter/tree-sitter-cpp")
+  	(cmake "https://github.com/uyha/tree-sitter-cmake")
+  	(css "https://github.com/tree-sitter/tree-sitter-css")
+  	(elisp "https://github.com/Wilfred/tree-sitter-elisp")
+  	(go "https://github.com/tree-sitter/tree-sitter-go")
+  	(haskell "https://github.com/tree-sitter/tree-sitter-haskell")
+  	(html "https://github.com/tree-sitter/tree-sitter-html")
+  	(java "https://github.com/tree-sitter/tree-sitter-java")
+  	(javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+  	(json "https://github.com/tree-sitter/tree-sitter-json")
+  	(make "https://github.com/alemuller/tree-sitter-make")
+  	(markdown "https://github.com/ikatyang/tree-sitter-markdown")
+  	(php "https://github.com/tree-sitter/tree-sitter-php" "master" "php/src")
+  	(python "https://github.com/tree-sitter/tree-sitter-python")
+  	(regex "https://github.com/tree-sitter/tree-sitter-regex")
+  	(rust "https://github.com/tree-sitter/tree-sitter-rust")
+  	(toml "https://github.com/tree-sitter/tree-sitter-toml")
+  	(tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+  	(typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+  	(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+  ;; If there's an issue with ts modes opening in language buffers, it might be because of the wrong name
+  ;; of mode (java-ts-mode, c-ts-mode) etc being used.
+  (use-package treesit-auto 
+    :ensure t
+    :config
+    (global-treesit-auto-mode 1))  
 #+end_src
-*** Language Server (Eglot)
+**** Language Server (Eglot)
 This section configures the inbuilt (since version 29ish) LSP client. Eglot can find most lang servers (like =clangd=, =jdtls=, etc) in our PATH, but we need to provide explicit config for servers in non-standard locations.
 #+begin_src emacs-lisp
 
@@ -390,18 +462,20 @@ This section configures the inbuilt (since version 29ish) LSP client. Eglot can 
   	      ("C-c a" . eglot-code-actions)
   	      )
     :config
-    (let ((haskell-lsp (expand-file-name "~/.ghcup/bin/haskell-language-server-wrapper")))
-      (when (file-exists-p haskell-lsp)
-        (add-to-list 'eglot-server-programs
-                     `(haskell-mode . (,haskell-lsp "--lsp")))))
+    ;(let ((haskell-lsp (or (executable-find "haskell-language-server-wrapper")
+    ;                     (expand-file-name "~/.ghcup/bin/haskell-language-server-wrapper"))))
+    ;  (when (file-exists-p haskell-lsp)
+    ;    (add-to-list 'eglot-server-programs
+    ;                 `(haskell-mode . (,haskell-lsp "--lsp")))))
     (setq eglot-auto-server-display nil) ;Don't autodisplay server-buffer on restart
+    (setq eglot-events-buffer-size 0)
     (setq eglot-reconnect-on-change t)
     (setq eglot-autodocument t) ; on mouse-over
     (setq eglot-autodocument-delay 1)
     (setq eglot-display-buffer-function #'eglot-display-buffer-at-bottom)
     )
 #+end_src
-*** C++
+**** C++
 C, C++ and cmake settings - using the newer treesitter modes
 #+begin_src emacs-lisp
   (defun nij/cmake-configure-preset ()
@@ -412,7 +486,6 @@ C, C++ and cmake settings - using the newer treesitter modes
       (message "Error: 'cmake' not in PATH.")
       ))
 #+end_src
-
 #+begin_src emacs-lisp
   (defun nij/c-ts-mode-common-setup ()
     "Common setup for C/C++ tree-sitter modes."
@@ -427,17 +500,16 @@ C, C++ and cmake settings - using the newer treesitter modes
   (defun nij/cpp-ts-mode-setup ()
     "C++ specific setup."
     ;; Bind your C++ specific key
+    (nij/c-ts-mode-common-setup)
     (define-key c++-ts-mode-map (kbd "C-c C-p") #'nij/cmake-configure-preset)
     )
   ;; Add the hooks for the new modes
   (add-hook 'c-ts-mode-hook #'nij/c-ts-mode-common-setup)
   (add-hook 'c++-ts-mode-hook #'nij/cpp-ts-mode-setup)
 #+end_src
-*** Java
+**** Java
 Java settings - using the newer treesitter version
 #+begin_src emacs-lisp
-
-(add-to-list 'major-mode-remap-alist '(java-mode . java-ts-mode))
 
 (defun nij/java-ts-mode-setup ()
   "Keybinds for java-ts-mode."
@@ -445,7 +517,7 @@ Java settings - using the newer treesitter version
 
 (add-hook 'java-ts-mode-hook #'nij/java-ts-mode-setup)
 #+end_src
-*** Javascript/Typescript
+**** Javascript/Typescript
 Major mode for JS/TS, integrate Prettier, and a REPL.
 #+begin_src emacs-lisp
   (use-package typescript-mode
@@ -461,64 +533,86 @@ Major mode for JS/TS, integrate Prettier, and a REPL.
       :ensure t
       :hook ((js-mode . prettier-js-mode)
              (typescript-mode . prettier-js-mode)
-             (web-mode . prettier-js-mode))
-      :config
-      (add-hook 'js-mode-hook
-                (lambda ()
-                  (add-hook 'before-save-hook 'prettier-js-before-save nil 'local)))
-      (add-hook 'typescript-mode-hook
-                (lambda ()
-                  (add-hook 'before-save-hook 'prettier-js-before-save nil 'local)))
-      ))
+             (web-mode . prettier-js-mode)
+  	   (js-mode . nij/prettier-format-on-save)
+             (typescript-mode . nij/prettier-format-on-save))
+  	   ))
   (when (executable-find "node")
     (use-package nodejs-repl
       :ensure t
-      :hook (js-mode . (lambda ()
-                         (define-key js-mode-map (kbd "C-c C-j") 'nodejs-repl-run-current-file)))
-      :hook (typescript-mode . (lambda ()
-                                 (define-key typescript-mode-map (kbd "C-c C-j") 'nodejs-repl-run-current-file)))
-      ))  
+      :bind ((:map js-mode-map
+  		 ("C-c C-j" . nodejs-repl-run-current-file))
+             (:map typescript-mode-map
+  		 ("C-c C-j" . nodejs-repl-run-current-file)))
+      ))
 #+end_src
-
-*** Haskell
+**** Haskell
 #+begin_src emacs-lisp
-    (use-package haskell-mode   :ensure nil :defer t)
+  (use-package haskell-mode :ensure nil :defer t)
 #+end_src
-
-** Completion (Corfu)
-A lightweight, fast, and modern completion UI (replaces =company=).
-=kind-icon= integrates with =all-the-icons= to provide icons,
-replacing =company-box=.
-
+*** Completion (Corfu)
+A lightweight, fast, and modern completion UI
+=kind-icon= integrates with =all-the-icons= to provide icons
+=cape= provides extra completion at point functions
 #+begin_src emacs-lisp
+  (use-package kind-icon
+    :ensure t
+    :after corfu
+    ;:config
+    ;; This function will add the icon formatter to corfu
+    ;; *after* corfu is loaded.
+    ;(kind-icon-set-corfu-format)
+    )
+
   (use-package corfu
     :ensure t
+    ;:after kind-icon ; -- Load after kind-icon
+    :init (global-corfu-mode 1)
     :custom
-    ;; These mirror our company settings
     (corfu-auto t)
     (corfu-auto-prefix 1)
     (corfu-auto-delay 0.0)
     (corfu-cycle t)               ; Allow cycling
     (corfu-popupinfo-delay 0.5)   ; Show extra info in a popup
+    ;; We remove this line, as kind-icon handles it now 
+    (corfu-format-functions '(corfu-format-default kind-icon-corfu-format))
     :bind
     ;; Binds TAB to 'corfu-complete'.
-    ;; This is smarter than company-complete-selection:
-    ;; - It indents if at the start of a line.
-    ;; - It completes if there's a completion.
     (:map corfu-map
           ("<tab>" . corfu-complete)
-          ("TAB" . corfu-complete))
-    :config
-    (global-corfu-mode 1)) ;; in config so it's not lazy, to avoid race condition with kind-icon
+          ("TAB" . corfu-complete)))
+  ;(use-package corfu
+  ;  :ensure t
+  ;  :init (global-corfu-mode 1)
+  ;  :custom
+  ;  (corfu-auto t)
+  ;  (corfu-auto-prefix 1)
+  ;  (corfu-auto-delay 0.0)
+  ;  (corfu-cycle t)               ; Allow cycling
+  ;  (corfu-popupinfo-delay 0.5)   ; Show extra info in a popup
+  ;  (corfu-format-functions '(corfu-format-default kind-icon-corfu-format))
+  ;  :bind
+  ;  ;; Binds TAB to 'corfu-complete'.
+  ;  (:map corfu-map
+  ;        ("<tab>" . corfu-complete)
+  ;        ("TAB" . corfu-complete)))
 
-  (use-package kind-icon
+        ;(use-package kind-icon
+        ;  :ensure t
+        ;  :after corfu
+        ;  )
+        
+  (use-package cape
     :ensure t
-    :after corfu
     :config
-    ;; This function adds the icons to the corfu popup
-    (add-to-list 'corfu-format-functions #'kind-icon-corfu-format))
+    ;; Add cape's functions to Emacs's built-in completion-at-point-functions
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-keyword)
+    ;; We can add others
+    )
 #+end_src
-** Project Management (Projectile)
+*** Project Management (Projectile)
 #+begin_src emacs-lisp
   (use-package projectile
     :ensure t
@@ -530,10 +624,6 @@ replacing =company-box=.
     :init
     ;; Enable the global minor mode via its autoload
     (projectile-mode 1)
-    
-    ;; Set variables before the package is loaded
-    (when (file-directory-p "~/Projects/Code")
-      (setq projectile-project-search-path '("~/Projects/Code")))
     (setq projectile-switch-project-action #'projectile-dired))
 
   (use-package consult-projectile
@@ -543,56 +633,62 @@ replacing =company-box=.
                 ("f" . consult-projectile-find-file)
                 ("s" . consult-projectile-switch-project)))
 #+end_src
-** Version Control (Magit)
+*** Version Control (Magit)
 #+begin_src emacs-lisp
-  (use-package transient :ensure t)
+  (use-package transient :ensure t) ;; without explicitly installing it, elpaca complains that
+                                    ;; the inbuilt version is too old and won't install magit
+
   (use-package magit
     :ensure t
     :bind (("C-x g" . magit-status)) ;; This implicitly makes it lazy
     :config
-    (setq magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
-    (let ((auth-file (expand-file-name "~/.authinfo.gpg")))
-      (when (file-exists-p auth-file)
-        (use-package forge
-          :ensure t
-          :after magit 
-          :config (setq auth-sources `(,auth-file))))))
+    (setq magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+  ;; This ensures 'forge' is installed and loaded *after* 'magit',
+  ;; so that our local.el file can configure it.
+  (use-package forge
+    :ensure t
+    :after magit)
 #+end_src
-** Rainbow Delimiters
+*** Rainbow Delimiters
 #+begin_src emacs-lisp
   (use-package rainbow-delimiters
     :ensure t
     :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
-* File Management (dired)
-Some slight customisations . Remember to =:ensure nil=. =dired-single= if we get annoyed by the multiple dired buffers. =dired-open= if we want to directly open binary files in eg feh, mpv, etc.
+** File Management (dired)
+Some slight customisations. Consider =dired-single= if we get annoyed by the multiple dired buffers. =dired-open= if we want to directly open binary files in eg feh, mpv, etc.
 #+begin_src emacs-lisp
-  (use-package dired
-     
-    :ensure nil
-    :commands (dired dired-jump)
-    :custom ((dired-listing-switches "-alh --group-directories-first")
-    	   (wdired-allow-to-change-permissions t))
-    :config
-    (require 'dired-x))
+    (use-package dired
+       
+      :ensure nil
+      :commands (dired dired-jump)
+      :custom ((dired-listing-switches "-alh --group-directories-first")
+      	   (wdired-allow-to-change-permissions t))
+      :config
+      (require 'dired-x))
 
-  ;; Only load all-the-icons-dired if we are in GUI and fonts are installed
-  (when (and (display-graphic-p) (member "all-the-icons" (font-family-list)))
-    (use-package all-the-icons-dired
-      :ensure t
-      :hook (dired-mode . all-the-icons-dired-mode)))
+    ;; Only load all-the-icons-dired if we are in GUI and fonts are installed
+  (use-package all-the-icons-dired
+    :ensure t
+    :hook (dired-mode . all-the-icons-dired-mode)
+    :if (nij/all-the-icons-available-p))
 
   (use-package dired-hide-dotfiles
     :ensure t
     :hook (dired-mode . dired-hide-dotfiles-mode)
     )
 
+  (use-package dired-git-info
+  :ensure t
+  :hook (dired-mode . (lambda () (ignore-errors (dired-git-info-mode 1)))))
 #+end_src
-* PDF Tools
+** PDF Tools
 From [[https://github.com/vedang/pdf-tools][PDF Tools]] - it is awesome, but it needs libpoppler, poppler-glib and epdfinfo on the host system.
 #+begin_src emacs-lisp
   (use-package pdf-tools
     :ensure t
+    :hook (pdf-view-mode . pdf-view-midnight-minor-mode)
     :defer t
     :commands (pdf-tools-install pdf-loader-install) ; Make install commands available
     :mode ("\\.pdf\\'" . pdf-view-mode)
@@ -602,20 +698,19 @@ From [[https://github.com/vedang/pdf-tools][PDF Tools]] - it is awesome, but it 
     :config
     ;; Check if the compiled server component is available
     (if (require 'pdf-tools-server nil 'noerror)
-        ;; If YES, then configure the package
         (progn
-          (setq revert-without-query (concat "\(" (regexp-quote ".pdf") "\|.*\.pdf\.lock\)"))
-          ;; Add the hook for your midnight mode here
-          (add-hook 'pdf-view-mode-hook 'nij/pdf-view-midnight-mode-setup))
-      
-      ;; If NO, print a helpful message
+          (setq revert-without-query (concat "\(" (regexp-quote ".pdf") "\|.*\.pdf\.lock\)")))
       (message "pdf-tools server not compiled. Run 'M-x pdf-tools-install'.")))
-
-  (defun nij/pdf-view-midnight-mode-setup ()
-    "Enable pdf-view-midnight-minor-mode in pdf-view-mode."
-    (pdf-view-midnight-minor-mode 1))
 #+end_src
-* LaTeX
+** Ebook Reader (nov.el)
+This adds support for reading =.epub= files
+We'll lazy-load it by associating it with the =.epub= file extension.
+#+begin_src emacs-lisp
+  (use-package nov
+    :ensure t
+    :mode ("\\.epub\\'" . nov-mode))
+#+end_src
+** LaTeX
 Lazy-load AUCTeX when a .tex file is opened.
 #+begin_src emacs-lisp
   (use-package auctex
@@ -640,7 +735,7 @@ Lazy-load AUCTeX when a .tex file is opened.
     (add-hook 'TeX-after-compilation-finished-functions
               #'TeX-revert-document-buffer))
 #+end_src
-* Vterm
+** Vterm
 A linux-only terminal, based on the libvterm library. We define a helper function to multiplex it and lazy-load the package via keybindings.
 #+begin_src emacs-lisp
   (defun nij/vterm-new ()
@@ -651,13 +746,21 @@ A linux-only terminal, based on the libvterm library. We define a helper functio
   (use-package vterm
     :ensure t
     :config
-    (setq shell-file-name "/bin/bash"
+    (setq vterm-shell "/bin/bash"
           vterm-max-scrollback 5000) 
     :bind (("C-c t" . vterm)
            ("C-c T" . nij/vterm-new))) 
 #+end_src
-* Other things
+** **Portability** (Load Local Config)
+This block loads a machine-specific configuration file, =local.el=, if it exists.
+This file is not part of the main config and should be added to .gitignore.
+It's used to set machine-specific variables, like file paths.
+#+begin_src emacs-lisp
+(let ((local-config (expand-file-name "local.el" user-emacs-directory)))
+  (when (file-exists-p local-config)
+    (load-file local-config)))
+#+end_src
+* Other ideas and issues
+- Figure out the ispell-alternate-dictionary issue - corfu spams errors in the messages buffer
 -  At some point, I should try and get music, video, IRC, RSS, email, and matrix working. 
 -  I'd also like to experiment with EXWM
-- is it possible to offer to install external dependencies??  
-- straight.el or elpaca? 

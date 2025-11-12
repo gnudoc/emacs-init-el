@@ -10,3 +10,8 @@ transient/
 tree-sitter/
 *.sqlite
 url/
+*.bak
+local.el
+nov-places
+early-init.el
+init.el
