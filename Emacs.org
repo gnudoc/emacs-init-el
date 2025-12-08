@@ -161,7 +161,8 @@ Configuring the basic look and feel, like line numbers and the bell.
                     eshell-mode-hook
                     eww-mode-hook
                     pdf-view-mode-hook
-  		  nov-mode-hook))
+  		  nov-mode-hook
+  		  rec-mode-hook))
       (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
     ;; --- GUI Specific Tweaks (that don't belong in early-init) ---
@@ -443,6 +444,22 @@ More [[https://orgmode.org/manual/Structure-Templates.html][here]].
     (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
     (add-to-list 'org-structure-template-alist '("hs" . "src haskell")))
 
+#+end_src
+** Data Mangt (recutils)
+GNU Recutils integration for flat-file databases.
+#+begin_src emacs-lisp
+  (use-package rec-mode
+  :ensure t
+  :mode "\\.rec\\'"
+  :config
+  ;; Visual styling for concerns
+  (setq rec-font-lock-keywords
+        (append rec-font-lock-keywords
+                '(("^Concern: Low" . 'success)
+                  ("^Concern: Medium" . 'warning)
+                  ("^Concern: High" . 'error)
+                  ("^Concern: Critical" . 'error)))))
+  
 #+end_src
 ** Dev Stuff
 *** Languages
@@ -805,16 +822,47 @@ It's used to set machine-specific variables, like file paths.
   (when (file-exists-p local-config)
     (load-file local-config)))
 #+end_src
-* Other ideas and issues
-- The intent here has been a readable, maintainable, modern, portable config. Other thoughts:
+* Vague thoughts and navel-gazing
+- The intent here has been a readable, maintainable, modern, portable config.
 - I should try and make a =portable emacs= that will run on a usb stick on a restrictive windows box, eg a client's machine
 - I should consider other extensions to =vertico, corfu, and org= - =org-roam= is an important one to look into
--  At some point, I should try and get music, video (=EMMS=?), IRC (=ERC=?), =RSS=, email (=mu4e=?), and =matrix= working.
+- At some point, I should try and get music, video (=EMMS=?), IRC (=ERC=?), =RSS=, email (=mu4e=?), and =matrix= working.
 - I should figure out why the =eat terminal jerks= through output sometimes rather than scrolling smoothly
-- I should try the =eaf framework=, especially its web browser
 - There is also the telegram integration (=telega=?) and the recent whatsapp integration project
--  I'd also like to experiment with =EXWM=
+- I'd also like to experiment with =EXWM=
+- there's a new =reader-mode= that does pdf and epub
 
+* Future Experiments (more fleshed out thoughts)
+** Emacs Application Framework (EAF)
+This is not in MELPA due to heavy external dependencies (Qt6/Python).
+Dependencies (Arch): ~sudo pacman -S python-pip qt6-base qt6-webengine qt6-svg qt6-declarative~
+~mkdir ~/.emacs.d/site-lisp/eaf~
+~git clone --depth=1 -b master https://github.com/emacs-eaf/emacs-application-framework.git ~/.emacs.d/site-lisp/eaf~
+#+begin_src emacs-lisp
+;  (use-package eaf
+;    :load-path "~/.emacs.d/site-lisp/eaf" ; Requires manual clone!
+;    :custom
+;    (eaf-browser-continue-where-left-off t)
+;    (eaf-browser-enable-adblocker t)
+;    (browse-url-browser-function 'eaf-open-browser)
+;    :config
+;    (defalias 'browse-web #'eaf-open-browser)
+;    (eaf-bind-key scroll_up "C-n" eaf-pdf-viewer-keybinding)
+;    (eaf-bind-key scroll_down "C-p" eaf-pdf-viewer-keybinding)
+;  ;;   (require 'eaf-markmap)
+;    )
+;  (require 'eaf-browser)
+;  (require 'eaf-pdf-viewer)
+;  (require 'eaf-system-monitor)
+;  (require 'eaf-demo)
+;  (require 'eaf-pyqterminal)
+;  (require 'eaf-pdf-viewer)
+;  (require 'eaf-browser)
+;  (require 'eaf-vue-tailwindcss)
+;  (require 'eaf-camera)
+;  (require 'eaf-vue-demo)
+
+#+end_src
 * Footer
 ;; This sets a buffer-local hook to tangle the file on save.
 ;; Because it is in 'Local Variables', it applies only to this file.
