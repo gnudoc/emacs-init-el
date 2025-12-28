@@ -785,12 +785,16 @@ A linux-only terminal, based on the libvterm library. We define a helper functio
     "Open a new vterm buffer with a unique name."
     (interactive)
     (vterm (generate-new-buffer-name "*vterm*")))
+  (defun nij/vterm-notify (title body)
+    "Trigger a desktop notification from vterm."
+    (start-process "notify" nil "notify-send" title body))
     
   (use-package vterm
     :ensure t
     :config
     (setq vterm-shell "/bin/bash"
-          vterm-max-scrollback 5000) 
+          vterm-max-scrollback 5000)
+    (add-to-list 'vterm-eval-cmds '("nij/vterm-notify" nij/vterm-notify))
     :bind (("C-c t" . vterm)
            ("C-c T" . nij/vterm-new))) 
 #+end_src
