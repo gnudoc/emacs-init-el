@@ -109,6 +109,7 @@ Ensure Emacs inherits the system $PATH so it can test for programs in the rest o
     :ensure t
     :config
     (when (display-graphic-p)
+      (setq exec-path-from-shell-variables '("PATH" "MANPATH" "SSH_AUTH_SOCK"))
       (exec-path-from-shell-initialize)))
 #+end_src
 ** Core Emacs Config
