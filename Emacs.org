@@ -723,7 +723,7 @@ Configure remote access, specifically fixing Zsh/Cloudflare latency issues.
     (setq tramp-verbose 1   ; Reduce logging overhead
         remote-file-name-inhibit-cache nil 
         tramp-ssh-controlmaster-options
-        "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=no")
+        "-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=1200") ;; handshake every 20 min not every transaction
     )
 #+end_src
 ** PDF Tools
