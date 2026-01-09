@@ -39,6 +39,7 @@ Also, remember to consider adding any new mode to the list of exceptions for glo
 #+end_src
 ** Package and System Setup
 *** Elpaca
+
 Using [[https://github.com/progfolio/elpaca][elpaca]] for fast, parallel, and reproducible package management.
 This code is based on the official README and I haven't really tried to understand it yet
 #+begin_src emacs-lisp
@@ -717,6 +718,11 @@ Configure remote access, specifically fixing Zsh/Cloudflare latency issues.
                  (list (regexp-quote "/ssh:ssh-nas-tunnel:")
                        "remote-shell" "/bin/bash"))
     
+    (add-to-list 'tramp-connection-properties
+                 (list (regexp-quote "/ssh:thror:")
+                       "remote-shell" "/bin/bash"))
+    
+    
     (setq vc-ignore-dir-regexp (format "\\(%s\\)\\|\\(%s\\)"
                                        vc-ignore-dir-regexp
                                        tramp-file-name-regexp))
@@ -818,6 +824,65 @@ Another awesome linux terminal, this one based on the libtsm library. It is more
     :hook (eat-mode . (lambda ()
                         (set-face-attribute 'default nil :inherit 'fixed-pitch))))
 #+end_src
+*** Remote Shell Workflow
+This section configures Eshell to act as a TRAMP-native hub.
+The idea is that it should gradually grow to replace the need for external SSH terminals.
+#TODO: We NEED to configure detached.el for long-running commands. Can it play with eshell?
+#+begin_src emacs-lisp
+  (use-package eshell
+    :ensure nil
+    :config
+    ;; 1. Quick Jump Function
+    ;; Usage: Type 'j thror', 'j girion', or 'j root' in Eshell
+    (defun eshell/j (target)
+      "Quickly jump to a TRAMP target or bookmark."
+      (let ((path (cond
+                   ;; Thror (Ubuntu NAS) - Standard User
+                   ((member target '("thror" "t")) "/ssh:thror:/home/nij")
+                   
+                   ;; Thror - Root Access (TRAMP Multi-hop)
+                   ;; This hops via ssh:thror, then sudo:root on thror
+                   ((member target '("root-thror" "rt")) "/ssh:thror|sudo:thror:/root")
+
+                   ;; Girion (TrueNAS) - Admin/Docker Management
+                   ;; Note: Using ssh-nas-tunnel based on your SSH config
+                   ((member target '("girion" "g" "nas")) "/ssh:truenas_admin@ssh-nas-tunnel:/mnt/main-pool")
+                   
+                   ;; Fallback: acts like normal cd
+                   (t target))))
+        (eshell/cd path)
+        (eshell/echo (format "Warped to %s" path))))
+
+    ;; 2. Smart Prompt (Shortens remote paths)
+    ;; Instead of /ssh:user@host:/path/to/dir $ 
+    ;; It will show: [host] /path/to/dir $
+    (setq eshell-prompt-function
+          (lambda ()
+            (concat
+              (if (file-remote-p default-directory)
+                 (let ((vec (tramp-dissect-file-name default-directory)))
+                   (format "[%s] " (tramp-file-name-host vec)))
+               "")
+             (abbreviate-file-name (eshell/pwd))
+             (if (= (user-uid) 0) " # " " $ "))))
+    )
+#+end_src
+
+*** Eat Visual Integration
+Since we are using the 'eat' terminal, we can tell Eshell to use 'eat' to render visual programs automatically.
+#+begin_src emacs-lisp
+  (use-package eat
+    :ensure t
+    :hook (eshell-load . eat-eshell-mode)
+    :config
+    ;; When you type 'htop' or 'vim' in Eshell, it will temporarily 
+    ;; turn into a full terminal emulator.
+    (add-to-list 'eat-eshell-visual-commands "htop")
+    (add-to-list 'eat-eshell-visual-commands "btop")
+    (add-to-list 'eat-eshell-visual-commands "nvtop")
+    (add-to-list 'eat-eshell-visual-commands "vim") 
+    (add-to-list 'eat-eshell-visual-commands "nano"))
+#+end_src
 ** **Portability** (Load Local Config)
 This block loads a machine-specific configuration file, =local.el=, if it exists.
 This file is not part of the main config and should be added to .gitignore.
@@ -839,7 +904,7 @@ It's used to set machine-specific variables, like file paths.
 
 * Future Experiments (more fleshed out thoughts)
 ** Emacs Application Framework (EAF)
-This is not in MELPA due to heavy external dependencies (Qt6/Python).
+This is not in MELPA due to heavy external dependencies (Qt6/Python). So I'm avoiding it for now.
 Dependencies (Arch): ~sudo pacman -S python-pip qt6-base qt6-webengine qt6-svg qt6-declarative~
 ~mkdir ~/.emacs.d/site-lisp/eaf~
 ~git clone --depth=1 -b master https://github.com/emacs-eaf/emacs-application-framework.git ~/.emacs.d/site-lisp/eaf~
