@@ -238,6 +238,7 @@ Take suggestions from [[https://github.com/hlissner/emacs-doom-themes][doom-them
 #+end_src
 *** Modeline
 Another element of doom emacs that's nice is [[https://github.com/seagle0128/doom-modeline][modeline]]. It has a bunch of its own config options, and on first run it needs =M-x all-the-icons-install-fonts=
+It doesn't need to run Version Control commands or git status on remote files, so let's prevent that.
 #+begin_src emacs-lisp
   (use-package all-the-icons :ensure t)
   (use-package nerd-icons :ensure t)
@@ -248,7 +249,17 @@ Another element of doom emacs that's nice is [[https://github.com/seagle0128/doo
     :config
     (if (nij/all-the-icons-available-p)
         (setq doom-modeline-height 15)
-      (setq doom-modeline-mode 10)))
+      (setq doom-modeline-mode 10))
+    (setq doom-modeline-vcs-max-length 12)
+    (add-hook 'find-file-hook
+            (lambda ()
+              (when (file-remote-p default-directory)
+                (setq-local doom-modeline-enable-word-count nil)
+                (setq-local doom-modeline-buffer-file-name-style 'truncate-with-project)
+                ;; Stop it from running 'git status' on the remote NAS
+                (setq-local doom-modeline-vcs-max-length 0))))
+
+    )
 #+end_src
 *** Which Key
 [[https://github.com/justbur/emacs-which-key][which-key]] offers all completions for any key prefix - now part of default emacs.
@@ -516,7 +527,7 @@ This section configures the inbuilt (since version 29ish) LSP client. Eglot can 
     (setq eglot-display-buffer-function #'eglot-display-buffer-at-bottom)
     )
 #+end_src
-**** C++
+**** C, C++
 C, C++ and cmake settings - using the newer treesitter modes
 #+begin_src emacs-lisp
   (defun nij/cmake-configure-preset ()
@@ -637,14 +648,17 @@ A lightweight, fast, and modern completion UI
 #+begin_src emacs-lisp
   (use-package projectile
     :ensure t
-    ;; :defer t is no longer needed, as :bind-keymap and :init handle it
     :diminish projectile-mode
     :custom ((projectile-completion-system 'default))
     :bind-keymap
      ("C-c p" . projectile-command-map)
     :init
-    ;; Enable the global minor mode via its autoload
     (projectile-mode 1)
+    ;; Disable Projectile completely for remote files
+    (defun nij/disable-projectile-on-remote ()
+    (when (file-remote-p default-directory)
+      (projectile-mode -1)))
+    (add-hook 'find-file-hook #'nij/disable-projectile-on-remote)
     (setq projectile-switch-project-action #'projectile-dired))
 
   (use-package consult-projectile
@@ -714,18 +728,21 @@ Configure remote access, specifically fixing Zsh/Cloudflare latency issues.
   (use-package tramp
     :ensure nil
     :config
-    (add-to-list 'tramp-connection-properties
-                 (list (regexp-quote "/ssh:ssh-nas-tunnel:")
-                       "remote-shell" "/bin/bash"))
-    
-    (add-to-list 'tramp-connection-properties
-                 (list (regexp-quote "/ssh:thror:")
-                       "remote-shell" "/bin/bash"))
-    
-    
+    ;; The next few lines try to simplify remote connections
+    (setq tramp-default-remote-shell "/bin/bash")
+    (connection-local-set-profile-variables 'tramp-connection-local-default-shell-profile
+                                          '((shell-file-name . "/bin/bash")
+                                            (shell-command-switch . "-c")))
+    (connection-local-set-profiles
+     '(:application tramp :protocol "ssh") 'tramp-connection-local-default-shell-profile)
+    (connection-local-set-profiles
+     '(:application tramp :protocol "sudo") 'tramp-connection-local-default-shell-profile)
+
+    ;; Don't bother with git stuff on remote files
     (setq vc-ignore-dir-regexp (format "\\(%s\\)\\|\\(%s\\)"
                                        vc-ignore-dir-regexp
                                        tramp-file-name-regexp))
+    
     (setq tramp-verbose 1   ; Reduce logging overhead
         remote-file-name-inhibit-cache nil 
         tramp-ssh-controlmaster-options
