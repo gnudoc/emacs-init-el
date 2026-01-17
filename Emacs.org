@@ -514,11 +514,6 @@ This section configures the inbuilt (since version 29ish) LSP client. Eglot can 
   	      ("C-c a" . eglot-code-actions)
   	      )
     :config
-    ;(let ((haskell-lsp (or (executable-find "haskell-language-server-wrapper")
-    ;                     (expand-file-name "~/.ghcup/bin/haskell-language-server-wrapper"))))
-    ;  (when (file-exists-p haskell-lsp)
-    ;    (add-to-list 'eglot-server-programs
-    ;                 `(haskell-mode . (,haskell-lsp "--lsp")))))
     (setq eglot-auto-server-display nil) ;Don't autodisplay server-buffer on restart
     (setq eglot-events-buffer-size 0)
     (setq eglot-reconnect-on-change t)
