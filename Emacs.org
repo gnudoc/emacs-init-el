@@ -495,7 +495,7 @@ We can use [[https://github.com/renzmann/treesit-auto][treesit-auto]] to automat
 This section configures the inbuilt (since version 29ish) LSP client. Eglot can find most lang servers (like =clangd=, =jdtls=, etc) in our PATH, but we need to provide explicit config for servers in non-standard locations.
 #+begin_src emacs-lisp
 
-  
+
   (use-package flymake :ensure t)
   (use-package jsonrpc :ensure t)
   (use-package eglot
@@ -514,6 +514,15 @@ This section configures the inbuilt (since version 29ish) LSP client. Eglot can 
   	      ("C-c a" . eglot-code-actions)
   	      )
     :config
+    ;; Tell clangd to assume C23 by default if no build file is found
+    (add-to-list 'eglot-workspace-configuration
+               '((:clangd .
+                  (:fallbackFlags [
+                                   "-std=c23" 
+                                   "-Wall" 
+                                   "-Wextra" 
+                                   "-Wshadow"
+                                   ]))))
     (setq eglot-auto-server-display nil) ;Don't autodisplay server-buffer on restart
     (setq eglot-events-buffer-size 0)
     (setq eglot-reconnect-on-change t)
@@ -523,7 +532,7 @@ This section configures the inbuilt (since version 29ish) LSP client. Eglot can 
     )
 #+end_src
 **** C, C++
-C, C++ and cmake settings - using the newer treesitter modes
+C, C++ and cmake settings - using the newer treesitter modes for syntax, and gdb-mi for debugging
 #+begin_src emacs-lisp
   (defun nij/cmake-configure-preset ()
     "Run 'cmake --preset default' in the project root."
@@ -538,12 +547,21 @@ C, C++ and cmake settings - using the newer treesitter modes
     "Common setup for C/C++ tree-sitter modes."
     ;; This replaces 'c-basic-offset' and 'c-set-style'.
     (setq-local treesit-indent-level 4)
-      
+    ;; Format on save using clangd
+    (add-hook 'before-save-hook 'eglot-format-buffer nil t)
     ;; Bind keys to the C TS map. 
     ;; c++-ts-mode inherits from c-ts-mode, so it gets these keys too.
     (define-key c-ts-mode-map (kbd "C-c c") #'compile)
     (define-key c-ts-mode-map (kbd "C-c s") #'nij/shell-other-window)
-    )
+    ;; Smart compile command: if Makefile exists, do nothing.
+    ;; So C-c c -> #'compile, which is make -k by default.
+    ;; If not, and we are in a C file, just gcc it.
+    (unless (file-exists-p "Makefile")
+      (setq-local compile-command 
+  		(concat "gcc -std=c23 -Wall -Wextra -g " 
+  			(file-name-nondirectory buffer-file-name) 
+  			" -o " 
+  			(file-name-sans-extension (file-name-nondirectory buffer-file-name))))))
   (defun nij/cpp-ts-mode-setup ()
     "C++ specific setup."
     ;; Bind your C++ specific key
@@ -553,6 +571,13 @@ C, C++ and cmake settings - using the newer treesitter modes
   ;; Add the hooks for the new modes
   (add-hook 'c-ts-mode-hook #'nij/c-ts-mode-common-setup)
   (add-hook 'c++-ts-mode-hook #'nij/cpp-ts-mode-setup)
+#+end_src
+#+begin_src emacs-lisp
+  (use-package gdb-mi
+    :ensure nil
+    :config
+    (setq gdb-many-windows t) ;; Use the IDE-like layout
+    (setq gdb-show-main t))   ;; Start display at main()
 #+end_src
 **** Java
 Java settings - using the newer treesitter version
@@ -698,9 +723,17 @@ Some slight customisations. Consider =dired-single= if we get annoyed by the mul
       :custom ((dired-listing-switches "-alh --group-directories-first")
       	   (wdired-allow-to-change-permissions t))
       :config
-      (require 'dired-x))
+      (require 'dired-x)
+      (setq dired-guess-shell-alist-user
+  	  '(("." ;; The catch-all for everything else
+  	     (list 
+  	      "mv -t /mnt/main-pool/audiobooks *" 
+  	      "mv -t /mnt/main-pool/staging-audiobooks/for-auto-m4b/recentlyadded *"
+  	      ;; The rsync command
+  	      "rsync -av --info=progress2 --remove-source-files --append-verify --bwlimit=50m * 192.168.8.10:/mnt/tank/media/"
+  	      )))))
 
-    ;; Only load all-the-icons-dired if we are in GUI and fonts are installed
+  ;; Only load all-the-icons-dired if we are in GUI and fonts are installed
   (use-package all-the-icons-dired
     :ensure t
     :hook (dired-mode . all-the-icons-dired-mode)
@@ -723,6 +756,9 @@ Configure remote access, specifically fixing Zsh/Cloudflare latency issues.
   (use-package tramp
     :ensure nil
     :config
+    ;; password clears from memory every 16s. Let it persist for 10min.
+    (setq password-cache-expiry 600) ; replace the number with nil for no expiry
+    
     ;; The next few lines try to simplify remote connections
     (setq tramp-default-remote-shell "/bin/bash")
     (connection-local-set-profile-variables 'tramp-connection-local-default-shell-profile
