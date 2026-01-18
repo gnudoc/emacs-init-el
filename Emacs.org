@@ -716,22 +716,24 @@ I put my current github personal access token in there.
 ** File Management (dired)
 Some slight customisations. Consider =dired-single= if we get annoyed by the multiple dired buffers. =dired-open= if we want to directly open binary files in eg feh, mpv, etc.
 #+begin_src emacs-lisp
-  (use-package dired
-       
-      :ensure nil
-      :commands (dired dired-jump)
-      :custom ((dired-listing-switches "-alh --group-directories-first")
+  (use-package dired 
+    :ensure nil
+    :commands (dired dired-jump)
+    :custom ((dired-listing-switches "-alh --group-directories-first")
       	   (wdired-allow-to-change-permissions t))
-      :config
-      (require 'dired-x)
-      (setq dired-guess-shell-alist-user
-  	  '(("." ;; The catch-all for everything else
-  	     (list 
-  	      "mv -t /mnt/main-pool/audiobooks *" 
-  	      "mv -t /mnt/main-pool/staging-audiobooks/for-auto-m4b/recentlyadded *"
-  	      ;; The rsync command
-  	      "rsync -av --info=progress2 --remove-source-files --append-verify --bwlimit=50m * 192.168.8.10:/mnt/tank/media/"
-  	      )))))
+    :config
+    (require 'dired-x)
+    (setq dired-guess-shell-alist-user
+  	'(("." ;; The catch-all for everything else
+  	   (list 
+  	    "mv -t /mnt/main-pool/audiobooks *" 
+  	    "mv -t /mnt/main-pool/staging-audiobooks/for-auto-m4b/recentlyadded *"
+  	    "rsync -av --info=progress2 --remove-source-files --append-verify --bwlimit=50m * 192.168.8.10:/mnt/tank/media/"
+  	    ))))
+    ;; Minimise unnecessary checks for changes in remote dired buffers
+    (setq global-auto-revert-non-file-buffers t)
+    (setq auto-revert-remote-files nil)
+    )
 
   ;; Only load all-the-icons-dired if we are in GUI and fonts are installed
   (use-package all-the-icons-dired
@@ -741,12 +743,17 @@ Some slight customisations. Consider =dired-single= if we get annoyed by the mul
 
   (use-package dired-hide-dotfiles
     :ensure t
-    :hook (dired-mode . dired-hide-dotfiles-mode)
-    )
+    :hook (dired-mode . dired-hide-dotfiles-mode))
 
   (use-package dired-git-info
-  :ensure t
-  :hook (dired-mode . (lambda () (ignore-errors (dired-git-info-mode 1)))))
+    :ensure t
+    :bind (:map dired-mode-map
+                (")" . dired-git-info-mode))
+    :init
+    (add-hook 'dired-mode-hook
+              (lambda ()
+                (unless (file-remote-p default-directory)
+  		(dired-git-info-mode 1)))))
 #+end_src
 ** Remote Access (TRAMP)
 Configure remote access, specifically fixing Zsh/Cloudflare latency issues.
